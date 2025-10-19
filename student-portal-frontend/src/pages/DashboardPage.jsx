@@ -45,7 +45,8 @@ export default function DashboardPage() {
           setCurrentStep("welcome");
         }
       } else {
-        console.error("Failed to fetch user data:", response.status);
+        const errorData = await response.json();
+        console.error("Failed to fetch user data:", errorData);
       }
     } catch (error) {
       console.error("Error fetching user data:", error);

@@ -205,12 +205,32 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
+// Error handling middleware for multer
+const handleUploadError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ msg: 'File too large. Maximum size is 5MB.' });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ msg: 'Too many files. Maximum 5 files allowed.' });
+    }
+  }
+  if (err.message === 'Only image files are allowed') {
+    return res.status(400).json({ msg: 'Only image files are allowed.' });
+  }
+  next(err);
+};
+
 // ---------------------- Dashboard ----------------------
 exports.getDashboard = async (req, res) => {
   try {
     const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ msg: 'User ID is required' });
+    }
+    
     const user = await User.findById(userId);
-
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
     // Determine semester statuses
@@ -232,7 +252,9 @@ exports.getDashboard = async (req, res) => {
       personalDetails: user.personalDetails,
       currentSemester: user.currentSemester,
       academicDetails: user.academicDetails,
-      semestersStatus
+      semestersStatus,
+      isPersonalDetailsCompleted: user.isPersonalDetailsCompleted,
+      isAcademicDetailsCompleted: user.isAcademicDetailsCompleted
     });
   } catch (err) {
     console.error(err);
@@ -244,6 +266,15 @@ exports.getDashboard = async (req, res) => {
 exports.savePersonalDetails = async (req, res) => {
   try {
     const { userId, personalDetails } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ msg: 'User ID is required' });
+    }
+    
+    if (!personalDetails) {
+      return res.status(400).json({ msg: 'Personal details are required' });
+    }
+    
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
@@ -267,12 +298,21 @@ exports.savePersonalDetails = async (req, res) => {
 
 // Export upload middleware
 exports.uploadMarksheets = upload.array('marksheets', 5); // Max 5 files
+exports.handleUploadError = handleUploadError;
 
 // ---------------------- Submit / Update Semester ----------------------
 exports.submitSemester = async (req, res) => {
   try {
     const { userId, semester, gpa, backlogs, remarks } = req.body;
     const uploadedFiles = req.files ? req.files.map(f => f.path) : [];
+
+    if (!userId) {
+      return res.status(400).json({ msg: 'User ID is required' });
+    }
+    
+    if (!semester) {
+      return res.status(400).json({ msg: 'Semester is required' });
+    }
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: 'User not found' });
@@ -305,6 +345,10 @@ exports.submitSemester = async (req, res) => {
     if (!user.currentSemester || semNum > user.currentSemester) {
       user.currentSemester = semNum;
     }
+
+    // Check if all academic details are completed
+    const completedSemesters = user.academicDetails.filter(ad => ad.isCompleted).length;
+    user.isAcademicDetailsCompleted = completedSemesters > 0;
 
     await user.save();
 

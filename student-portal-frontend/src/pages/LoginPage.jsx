@@ -71,7 +71,7 @@ export default function LoginPage() {
       loginUser(res.data.user);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.msg || "Login failed");
+      setError(err.response?.data?.msg || err.message || "Login failed");
     } finally {
       setLoading(false);
     }

@@ -5,12 +5,13 @@ const {
   savePersonalDetails, 
   submitSemester, 
   selectSemester,
-  uploadMarksheets 
+  uploadMarksheets,
+  handleUploadError
 } = require('../controllers/userController');
 
 router.post('/dashboard', getDashboard);
 router.post('/personal', savePersonalDetails);
-router.post('/academic', uploadMarksheets, submitSemester);
+router.post('/academic', uploadMarksheets, handleUploadError, submitSemester);
 router.post('/select-semester', selectSemester);
 
 module.exports = router;

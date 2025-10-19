@@ -157,7 +157,7 @@ export default function SignupPage() {
       setUserEmail(res.data.user.email);
       setShowOtpModal(true);
     } catch (err) {
-      setError(err.response?.data?.msg || "Signup failed");
+      setError(err.response?.data?.msg || err.message || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -170,7 +170,7 @@ export default function SignupPage() {
       setShowOtpModal(false);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.msg || "Invalid OTP");
+      setError(err.response?.data?.msg || err.message || "Invalid OTP");
     }
   };
 

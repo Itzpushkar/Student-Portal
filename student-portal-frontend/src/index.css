@@ -1,16 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @layer base {
   * {
-    @apply border-border;
+    border-color: rgb(229 231 235);
   }
   
   body {
-    @apply bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-800 text-foreground font-sans;
+    background: linear-gradient(to bottom right, #2563eb, #1d4ed8, #1e40af);
+    color: #111827;
+    font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

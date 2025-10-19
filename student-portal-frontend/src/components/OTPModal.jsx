@@ -1,41 +1,16 @@
-// import { useState } from "react";
-
-// export default function OTPModal({ onClose, onVerify }) {
-//   const [otp, setOtp] = useState("");
-
-//   const handleSubmit = (e) => {
-//     e.preventDefault();
-//     onVerify(otp);
-//   };
-
-//   return (
-//     <div className="otp-modal">
-//       <div className="otp-box">
-//         <h3>Enter OTP</h3>
-//         <form onSubmit={handleSubmit}>
-//           <input
-//             type="text"
-//             value={otp}
-//             onChange={(e) => setOtp(e.target.value)}
-//             placeholder="Enter 6-digit OTP"
-//             required
-//           />
-//           <button type="submit">Verify</button>
-//         </form>
-//         <button onClick={onClose}>Cancel</button>
-//       </div>
-//     </div>
-//   );
-// }
-
-
 import { useState } from "react";
 
 export default function OTPModal({ onClose, onVerify }) {
   const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (otp.length !== 6) {
+      setError("Please enter a 6-digit OTP");
+      return;
+    }
+    setError("");
     onVerify(otp);
   };
 
@@ -51,11 +26,16 @@ export default function OTPModal({ onClose, onVerify }) {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && <div className="error-message">{error}</div>}
+          
           <div className="form-group">
             <input
               type="text"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              onChange={(e) => {
+                setOtp(e.target.value);
+                setError("");
+              }}
               placeholder="Enter 6-digit OTP"
               maxLength={6}
               required

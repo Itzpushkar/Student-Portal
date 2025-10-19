@@ -58,7 +58,7 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
       }
     } catch (err) {
       console.error("Error updating semester:", err);
-      setError("Network error. Please try again.");
+      setError(err.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
