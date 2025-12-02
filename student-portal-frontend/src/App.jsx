@@ -1,22 +1,49 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
-import SignupPage from "./pages/SignupPage";
-import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-import AuthProvider from "./context/AuthProvider";
+// Admin Pages
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminLoginPage from "./pages/AdminLoginPage";
+import AdminSignupPage from "./pages/AdminSignupPage";
+// Auth Context & Protection
+import { AuthProvider } from "./context/AuthProvider";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
+          {/* --- Public Student Routes --- */}
+          {/* Note: Student Login/Signup is now handled inside LandingPage */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+
+          {/* --- Hidden Admin Routes --- */}
+          <Route path="/admin-login" element={<AdminLoginPage />} />
+          <Route path="/admin-signup" element={<AdminSignupPage />} />
+
+          {/* --- Protected Student Route --- */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* --- Protected Admin Route --- */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

@@ -26,7 +26,7 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
     try {
       // Get user ID from the userData or use a fallback
       const userId = userData?._id || userData?.user?._id;
-      
+
       if (!userId) {
         setError("User ID not found. Please try logging in again.");
         return;
@@ -35,16 +35,19 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
       console.log("Updating semester for user:", userId);
       console.log("Selected semester:", selectedSemester);
 
-      const response = await fetch("http://localhost:5000/api/user/select-semester", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: userId,
-          semester: parseInt(selectedSemester)
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/user/select-semester",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: userId,
+            semester: parseInt(selectedSemester),
+          }),
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();
@@ -67,8 +70,12 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
   return (
     <div className="card max-w-4xl mx-auto p-8">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Semester Progression</h2>
-        <p className="text-gray-600">Select which semester you are promoted to</p>
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">
+          Semester Progression
+        </h2>
+        <p className="text-gray-600">
+          Select which semester you are promoted to
+        </p>
       </div>
 
       {error && <div className="error-message mb-6">{error}</div>}
@@ -76,14 +83,24 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
         <h3 className="text-lg font-bold text-gray-800 mb-4">Current Status</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <p className="text-gray-700">Current Semester: <strong className="text-primary-600">{currentSem}</strong></p>
-          <p className="text-gray-700">Completed Semesters: <strong className="text-green-600">{userData?.academicDetails?.length || 0}</strong></p>
+          <p className="text-gray-700">
+            Current Semester:{" "}
+            <strong className="text-primary-600">{currentSem}</strong>
+          </p>
+          <p className="text-gray-700">
+            Completed Semesters:{" "}
+            <strong className="text-green-600">
+              {userData?.academicDetails?.length || 0}
+            </strong>
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="form-group">
-          <label htmlFor="semester" className="form-label">Select New Semester *</label>
+          <label htmlFor="semester" className="form-label">
+            Select New Semester *
+          </label>
           <select
             id="semester"
             name="semester"
@@ -94,8 +111,8 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
           >
             <option value="">Choose a semester</option>
             {Array.from({ length: maxSemester }, (_, i) => i + 1)
-              .filter(sem => sem > currentSem)
-              .map(sem => (
+              .filter((sem) => sem > currentSem)
+              .map((sem) => (
                 <option key={sem} value={sem}>
                   Semester {sem}
                 </option>
@@ -116,7 +133,8 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
             </li>
             <li className="flex items-start">
               <span className="text-yellow-600 mr-2">•</span>
-              Future semesters ({currentSem + 1}+) will be unlocked after selection
+              Future semesters ({currentSem + 1}+) will be unlocked after
+              selection
             </li>
             <li className="flex items-start">
               <span className="text-yellow-600 mr-2">•</span>
@@ -126,16 +144,16 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
         </div>
 
         <div className="flex space-x-4 pt-6">
-          <button 
-            type="button" 
-            onClick={onCancel} 
+          <button
+            type="button"
+            onClick={onCancel}
             className="btn-outline flex-1"
           >
             Cancel
           </button>
-          <button 
-            type="submit" 
-            disabled={loading || !selectedSemester} 
+          <button
+            type="submit"
+            disabled={loading || !selectedSemester}
             className="btn-primary flex-1"
           >
             {loading ? (
@@ -152,38 +170,54 @@ export default function SemesterSelector({ userData, onComplete, onCancel }) {
 
       {userData?.academicDetails && userData.academicDetails.length > 0 && (
         <div className="mt-12">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6">Semester History</h3>
+          <h3 className="text-2xl font-bold text-gray-800 mb-6">
+            Semester History
+          </h3>
           <div className="space-y-4">
-            {Array.from({ length: maxSemester }, (_, i) => i + 1).map(sem => {
-              const academic = userData.academicDetails.find(ad => ad.semester === sem);
+            {Array.from({ length: maxSemester }, (_, i) => i + 1).map((sem) => {
+              const academic = userData.academicDetails.find(
+                (ad) => ad.semester === sem
+              );
               const isCompleted = !!academic;
               const isCurrent = sem === currentSem;
               const isFuture = sem > currentSem;
 
               return (
-                <div 
-                  key={sem} 
+                <div
+                  key={sem}
                   className={`timeline-item ${
-                    isCompleted ? 'border-green-200 bg-green-50' : 
-                    isCurrent ? 'border-blue-200 bg-blue-50' : 
-                    isFuture ? 'border-gray-200 bg-gray-50' : 
-                    'border-gray-200 bg-gray-50'
+                    isCompleted
+                      ? "border-green-200 bg-green-50"
+                      : isCurrent
+                      ? "border-blue-200 bg-blue-50"
+                      : isFuture
+                      ? "border-gray-200 bg-gray-50"
+                      : "border-gray-200 bg-gray-50"
                   }`}
                 >
-                  <div className={`timeline-marker ${
-                    isCompleted ? 'bg-green-500' : 
-                    isCurrent ? 'bg-blue-500' : 
-                    isFuture ? 'bg-gray-400' : 
-                    'bg-gray-300'
-                  }`}>
-                    {isCompleted ? '✓' : isCurrent ? '●' : '○'}
+                  <div
+                    className={`timeline-marker ${
+                      isCompleted
+                        ? "bg-green-500"
+                        : isCurrent
+                        ? "bg-blue-500"
+                        : isFuture
+                        ? "bg-gray-400"
+                        : "bg-gray-300"
+                    }`}
+                  >
+                    {isCompleted ? "✓" : isCurrent ? "●" : "○"}
                   </div>
                   <div className="timeline-content">
                     <h4 className="font-bold text-gray-800">Semester {sem}</h4>
                     {isCompleted ? (
                       <div className="mt-2">
-                        <p className="text-sm text-gray-600">GPA: {academic.gpa || "N/A"}</p>
-                        <p className="text-sm text-gray-600">Backlogs: {academic.backlogs || 0}</p>
+                        <p className="text-sm text-gray-600">
+                          GPA: {academic.gpa || "N/A"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Backlogs: {academic.backlogs || 0}
+                        </p>
                         <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
                           Completed
                         </span>
