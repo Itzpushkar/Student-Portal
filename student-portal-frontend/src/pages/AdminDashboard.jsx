@@ -3,122 +3,71 @@ import { useAuth } from "../context/useAuth";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
-  const { logoutUser } = useAuth();
+  const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("promotions");
 
-  // Data State
+  // States
+  const [activeTab, setActiveTab] = useState("promotions");
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [allStudents, setAllStudents] = useState([]);
+  const [students, setStudents] = useState([]);
   const [pendingAdmins, setPendingAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Initial Load
+  const isSuperAdmin = user?.role === "super-admin";
+
+  // --- POLLING & FETCH ---
   useEffect(() => {
     fetchData();
-  }, []);
-
-  // Auto-Refresh (Hot Reloading) every 5s
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchData(false); // Silent refresh
-    }, 5000);
+    const interval = setInterval(() => fetchData(false), 5000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchData = async (showLoading = true) => {
     if (showLoading) setLoading(true);
+    const opts = { credentials: "include" };
     try {
-      const opts = { credentials: "include" };
-
-      // 1. Fetch Promotions (from User Routes - userController)
+      // 1. Promotions (Both Roles)
       const promRes = await fetch(
         "http://localhost:5000/api/user/admin/pending-promotions",
         opts
       );
-      if (promRes.ok) {
-        const data = await promRes.json();
-        setPendingRequests(data);
-      }
+      if (promRes.ok) setPendingRequests(await promRes.json());
 
-      // 2. Fetch Students (from Admin Routes - adminController)
+      // 2. Students (Both Roles - Backend filters by branch automatically)
       const stdRes = await fetch(
         "http://localhost:5000/api/admin/all-students",
         opts
       );
-      if (stdRes.ok) {
-        const data = await stdRes.json();
-        setAllStudents(data);
-      }
+      if (stdRes.ok) setStudents(await stdRes.json());
 
-      // 3. Fetch Admins (from Admin Routes - adminController)
-      const admRes = await fetch(
-        "http://localhost:5000/api/admin/pending-admins",
-        opts
-      );
-      if (admRes.ok) {
-        const data = await admRes.json();
-        setPendingAdmins(data);
+      // 3. Pending Admins (Super Admin Only)
+      if (isSuperAdmin) {
+        const admRes = await fetch(
+          "http://localhost:5000/api/admin/pending-admins",
+          opts
+        );
+        if (admRes.ok) setPendingAdmins(await admRes.json());
       }
     } catch (err) {
-      console.error("Admin Fetch Error:", err);
+      console.error(err);
     } finally {
       if (showLoading) setLoading(false);
     }
   };
 
-  // --- ACTIONS (Hot Reloading Triggered via fetchData) ---
-
-  const handleDecision = async (requestId, decision) => {
-    if (!confirm(`Confirm ${decision}?`)) return;
+  // --- ACTIONS ---
+  const handleAction = async (url, body) => {
+    if (!confirm("Confirm action?")) return;
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/user/admin/approve-promotion",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ requestId, decision }),
-        }
-      );
-      if (res.ok) fetchData(false); // Hot Reload
-      else alert("Action failed");
-    } catch (e) {
-      alert("Network Error");
-    }
-  };
-
-  const handleUserStatus = async (userId, action) => {
-    // action: 'disable-user' or 'enable-user'
-    const reason = action === "disable-user" ? prompt("Reason for ban:") : null;
-    if (action === "disable-user" && !reason) return;
-
-    try {
-      const res = await fetch(`http://localhost:5000/api/admin/${action}`, {
+      await fetch(url, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, days: 7, reason }),
-      });
-      if (res.ok) fetchData(false); // Hot Reload
-      else alert("Action failed");
-    } catch (e) {
-      alert("Network Error");
-    }
-  };
-
-  const handleAdminApproval = async (pendingAdminId, decision) => {
-    try {
-      const res = await fetch("http://localhost:5000/api/admin/approve-admin", {
-        method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pendingAdminId, decision }),
+        body: JSON.stringify(body),
       });
-      if (res.ok) fetchData(false); // Hot Reload
-      else alert("Action failed");
+      fetchData(false);
     } catch (e) {
-      alert("Network Error");
+      alert("Error");
     }
   };
 
@@ -130,154 +79,180 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-100 flex font-sans">
       {/* SIDEBAR */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col fixed h-full z-10">
-        <div className="p-6 border-b border-slate-800">
-          <h1 className="text-2xl font-bold">Admin Panel</h1>
+      <aside
+        className={`w-64 text-white flex flex-col fixed h-full z-10 ${
+          isSuperAdmin ? "bg-slate-900" : "bg-indigo-900"
+        }`}
+      >
+        <div className="p-6 border-b border-white/10">
+          <h1 className="text-xl font-bold">
+            {isSuperAdmin ? "SUPER ADMIN" : "BRANCH ADMIN"}
+          </h1>
+          <p className="text-xs opacity-70 mt-1">
+            {user?.branch === "ALL" ? "Main Campus" : `${user?.branch} Dept`}
+          </p>
         </div>
+
         <nav className="flex-1 p-4 space-y-2">
-          <button
+          {/* Shared Tabs */}
+          <NavBtn
+            label="Promotions"
+            count={pendingRequests.length}
+            active={activeTab === "promotions"}
             onClick={() => setActiveTab("promotions")}
-            className={`nav-btn ${
-              activeTab === "promotions" ? "bg-blue-600" : ""
-            }`}
-          >
-            Promotions
-            {pendingRequests.length > 0 && (
-              <span className="badge">{pendingRequests.length}</span>
-            )}
-          </button>
-          <button
+          />
+          <NavBtn
+            label="Students"
+            active={activeTab === "students"}
             onClick={() => setActiveTab("students")}
-            className={`nav-btn ${
-              activeTab === "students" ? "bg-blue-600" : ""
-            }`}
-          >
-            Students
-          </button>
-          <button
-            onClick={() => setActiveTab("admins")}
-            className={`nav-btn ${activeTab === "admins" ? "bg-blue-600" : ""}`}
-          >
-            Admins
-            {pendingAdmins.length > 0 && (
-              <span className="badge">{pendingAdmins.length}</span>
-            )}
-          </button>
+          />
+
+          {/* Super Admin Only Tab */}
+          {isSuperAdmin && (
+            <NavBtn
+              label="Manage Admins"
+              count={pendingAdmins.length}
+              active={activeTab === "admins"}
+              onClick={() => setActiveTab("admins")}
+            />
+          )}
         </nav>
+
         <div className="p-4">
           <button
             onClick={handleLogout}
-            className="text-red-400 w-full text-left p-2 hover:bg-slate-800 rounded"
+            className="text-red-300 hover:text-white w-full text-left"
           >
             Logout
           </button>
         </div>
       </aside>
 
-      {/* CONTENT */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 ml-64 p-8">
         <div className="bg-white rounded-xl shadow p-6 min-h-[500px]">
-          {loading && (
-            <p className="text-center text-gray-500 py-10">Loading Data...</p>
-          )}
-
-          {/* PROMOTIONS */}
-          {!loading && activeTab === "promotions" && (
+          {/* --- TAB: PROMOTIONS --- */}
+          {activeTab === "promotions" && (
             <div>
-              <h2 className="text-xl font-bold mb-4">
-                Pending Promotions ({pendingRequests.length})
+              <h2 className="text-xl font-bold mb-4 border-b pb-2">
+                Promotion Requests
               </h2>
-              {pendingRequests.map((req) => (
-                <div
-                  key={req._id}
-                  className="flex justify-between items-center border-b p-4 hover:bg-slate-50"
-                >
-                  <div>
-                    <p className="font-bold">
-                      {req.userId?.personalDetails?.fullName ||
-                        req.userId?.username ||
-                        "Unknown Student"}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Sem {req.currentSemester} → {req.requestedSemester}
-                    </p>
+              {pendingRequests.length === 0 ? (
+                <p className="text-gray-400">No pending requests.</p>
+              ) : (
+                pendingRequests.map((req) => (
+                  <div
+                    key={req._id}
+                    className="flex justify-between items-center p-4 border-b hover:bg-slate-50"
+                  >
+                    <div>
+                      <p className="font-bold">
+                        {req.userId?.personalDetails?.fullName || "Student"}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Sem {req.currentSemester} → {req.requestedSemester}
+                      </p>
+                    </div>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() =>
+                          handleAction(
+                            "http://localhost:5000/api/user/admin/approve-promotion",
+                            { requestId: req._id, decision: "approved" }
+                          )
+                        }
+                        className="px-3 py-1 bg-green-500 text-white rounded text-sm"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleAction(
+                            "http://localhost:5000/api/user/admin/approve-promotion",
+                            { requestId: req._id, decision: "rejected" }
+                          )
+                        }
+                        className="px-3 py-1 bg-red-500 text-white rounded text-sm"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-x-2">
-                    <button
-                      onClick={() => handleDecision(req._id, "approved")}
-                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleDecision(req._id, "rejected")}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {pendingRequests.length === 0 && (
-                <p className="text-gray-500">No pending requests.</p>
+                ))
               )}
             </div>
           )}
 
-          {/* STUDENTS */}
-          {!loading && activeTab === "students" && (
+          {/* --- TAB: STUDENTS --- */}
+          {activeTab === "students" && (
             <div>
-              <h2 className="text-xl font-bold mb-4">
-                All Students ({allStudents.length})
+              <h2 className="text-xl font-bold mb-4 border-b pb-2">
+                {isSuperAdmin ? "All Students" : `Students (${user?.branch})`}
               </h2>
               <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b bg-slate-50">
+                <thead className="bg-slate-50">
+                  <tr className="text-sm text-gray-500">
                     <th className="p-3">Name</th>
-                    <th className="p-3">Status</th>
+                    <th className="p-3">Branch</th>
                     <th className="p-3">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {allStudents.map((std) => (
-                    <tr key={std._id} className="border-b hover:bg-slate-50">
+                  {students.map((std) => (
+                    <tr key={std._id} className="border-b">
                       <td className="p-3">
-                        <div className="font-medium">
+                        <div className="font-bold">
                           {std.personalDetails?.fullName || std.username}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-400">
                           {std.enrollmentNo}
                         </div>
                       </td>
-                      <td className="p-3">
-                        {std.accountStatus?.isDisabled ? (
-                          <span className="text-red-600 font-bold bg-red-100 px-2 py-1 rounded text-xs">
-                            BANNED
-                          </span>
-                        ) : (
-                          <span className="text-green-600 font-bold bg-green-100 px-2 py-1 rounded text-xs">
-                            ACTIVE
-                          </span>
-                        )}
+                      <td className="p-3 text-sm">
+                        {std.personalDetails?.branch || "N/A"}
                       </td>
                       <td className="p-3">
                         {std.accountStatus?.isDisabled ? (
                           <button
                             onClick={() =>
-                              handleUserStatus(std._id, "enable-user")
+                              handleAction(
+                                "http://localhost:5000/api/admin/enable-user",
+                                { userId: std._id }
+                              )
                             }
-                            className="text-green-600 hover:underline"
+                            className="text-green-600 text-sm hover:underline"
                           >
                             Unban
                           </button>
                         ) : (
                           <button
                             onClick={() =>
-                              handleUserStatus(std._id, "disable-user")
+                              handleAction(
+                                "http://localhost:5000/api/admin/disable-user",
+                                {
+                                  userId: std._id,
+                                  days: 7,
+                                  reason: "Admin Action",
+                                }
+                              )
                             }
-                            className="text-red-600 hover:underline"
+                            className="text-red-600 text-sm hover:underline"
                           >
-                            Ban
+                            Ban (7 Days)
+                          </button>
+                        )}
+                        {/* Super Admin Delete Button */}
+                        {isSuperAdmin && (
+                          <button
+                            onClick={() =>
+                              handleAction(
+                                "http://localhost:5000/api/admin/delete-user",
+                                { userId: std._id }
+                              )
+                            }
+                            className="ml-4 text-xs bg-red-100 text-red-600 px-2 py-1 rounded"
+                          >
+                            Delete
                           </button>
                         )}
                       </td>
@@ -288,31 +263,43 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ADMINS */}
-          {!loading && activeTab === "admins" && (
+          {/* --- TAB: ADMINS (SUPER ONLY) --- */}
+          {activeTab === "admins" && isSuperAdmin && (
             <div>
-              <h2 className="text-xl font-bold mb-4">
-                Pending Admin Approvals
+              <h2 className="text-xl font-bold mb-4 border-b pb-2">
+                Pending Sub-Admins
               </h2>
               {pendingAdmins.map((admin) => (
                 <div
                   key={admin._id}
-                  className="flex justify-between items-center border-b p-4 hover:bg-slate-50"
+                  className="flex justify-between items-center p-4 border-b"
                 >
                   <div>
                     <p className="font-bold">{admin.username}</p>
-                    <p className="text-sm text-gray-500">{admin.email}</p>
+                    <p className="text-sm text-gray-500">
+                      {admin.email} • {admin.branch} Dept
+                    </p>
                   </div>
                   <div className="space-x-2">
                     <button
-                      onClick={() => handleAdminApproval(admin._id, "approve")}
-                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                      onClick={() =>
+                        handleAction(
+                          "http://localhost:5000/api/admin/approve-admin",
+                          { pendingAdminId: admin._id, decision: "approve" }
+                        )
+                      }
+                      className="px-3 py-1 bg-green-500 text-white rounded text-sm"
                     >
                       Approve
                     </button>
                     <button
-                      onClick={() => handleAdminApproval(admin._id, "reject")}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      onClick={() =>
+                        handleAction(
+                          "http://localhost:5000/api/admin/approve-admin",
+                          { pendingAdminId: admin._id, decision: "reject" }
+                        )
+                      }
+                      className="px-3 py-1 bg-red-500 text-white rounded text-sm"
                     >
                       Reject
                     </button>
@@ -320,18 +307,30 @@ export default function AdminDashboard() {
                 </div>
               ))}
               {pendingAdmins.length === 0 && (
-                <p className="text-gray-500">No pending admin requests.</p>
+                <p className="text-gray-400">No new admin requests.</p>
               )}
             </div>
           )}
         </div>
       </main>
-
-      <style>{`
-        .nav-btn { width: 100%; text-align: left; padding: 10px 16px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; transition: background 0.2s; }
-        .nav-btn:hover { background-color: #334155; }
-        .badge { background: #ef4444; color: white; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: bold; }
-      `}</style>
     </div>
+  );
+}
+
+function NavBtn({ label, count, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex justify-between items-center px-4 py-3 rounded transition-all ${
+        active ? "bg-white/20 font-bold" : "hover:bg-white/10"
+      }`}
+    >
+      <span>{label}</span>
+      {count > 0 && (
+        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+          {count}
+        </span>
+      )}
+    </button>
   );
 }

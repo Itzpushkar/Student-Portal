@@ -2,8 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminSignupPage() {
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
-  const [message, setMessage] = useState({ text: "", type: "" }); // type: 'success' or 'error'
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    branch: "",
+  });
+  const [message, setMessage] = useState({ text: "", type: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -21,9 +26,10 @@ export default function AdminSignupPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Success: Show message and maybe redirect after delay
         setMessage({ text: data.msg, type: "success" });
-        setTimeout(() => navigate("/"), 5000); // Back to home after 5s
+        // If auto-approved (Super Admin), redirect to login quickly
+        // If pending (Sub Admin), give them time to read the message
+        setTimeout(() => navigate("/admin-login"), 3000);
       } else {
         setMessage({ text: data.msg || "Request failed", type: "error" });
       }
@@ -45,8 +51,8 @@ export default function AdminSignupPage() {
           Request Admin Access
         </h2>
         <p className="text-slate-400 mb-6 text-sm">
-          Submit your credentials. If you are the first admin, you will be
-          auto-approved. Otherwise, your request requires approval.
+          Submit your credentials. The first registered admin becomes the Super
+          Admin.
         </p>
 
         {message.text && (
@@ -65,29 +71,48 @@ export default function AdminSignupPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
               className="input-field w-full bg-slate-900 border-slate-700 text-white p-3 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="Desired Username"
+              placeholder="Username"
               onChange={(e) => setForm({ ...form, username: e.target.value })}
               required
             />
             <input
               className="input-field w-full bg-slate-900 border-slate-700 text-white p-3 rounded focus:ring-2 focus:ring-blue-500 outline-none"
               type="email"
-              placeholder="Official Email"
+              placeholder="Email"
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
             />
+
+            {/* BRANCH SELECTION DROPDOWN */}
+            <select
+              className="input-field w-full bg-slate-900 border-slate-700 text-slate-300 p-3 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+              onChange={(e) => setForm({ ...form, branch: e.target.value })}
+              required
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Select Department / Branch
+              </option>
+              <option value="Computer">Computer Engineering</option>
+              <option value="Mechanical">Mechanical Engineering</option>
+              <option value="Civil">Civil Engineering</option>
+              <option value="Electrical">Electrical Engineering</option>
+              <option value="IT">Information Technology</option>
+              <option value="Admin">General Administration</option>
+            </select>
+
             <input
               className="input-field w-full bg-slate-900 border-slate-700 text-white p-3 rounded focus:ring-2 focus:ring-blue-500 outline-none"
               type="password"
-              placeholder="Strong Password"
+              placeholder="Password"
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
             />
             <button
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all"
+              className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50"
             >
-              {loading ? "Processing..." : "Submit Request"}
+              {loading ? "Processing..." : "Register"}
             </button>
           </form>
         )}

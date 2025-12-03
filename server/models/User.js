@@ -20,8 +20,11 @@ const personalSchema = new mongoose.Schema(
     contact: { type: String },
     address: String,
     tenthPercentage: { type: String },
+
+    // Critical for filtering
     course: String,
-    branch: String,
+    branch: { type: String, required: true },
+
     profilePhoto: String,
     isCompleted: { type: Boolean, default: false },
     completedAt: Date,
@@ -38,7 +41,12 @@ const userSchema = new mongoose.Schema(
 
     role: { type: String, default: "student" },
 
-    // --- CRITICAL: Ban/Disable Logic Fields ---
+    // --- TENURE LOGIC ---
+    admissionYear: { type: Number, required: true }, // e.g., 2023
+    courseDurationYears: { type: Number, default: 3 }, // Diploma = 3
+    isPassOut: { type: Boolean, default: false }, // True if tenure is over
+
+    // --- BAN LOGIC ---
     accountStatus: {
       isDisabled: { type: Boolean, default: false },
       disabledUntil: { type: Date },
@@ -48,12 +56,24 @@ const userSchema = new mongoose.Schema(
 
     personalDetails: personalSchema,
     academicDetails: [academicSchema],
-    currentSemester: { type: Number }, // Removed default: 1 to allow clean admins
+    currentSemester: { type: Number, default: 1 },
     isPersonalDetailsCompleted: { type: Boolean, default: false },
     isAcademicDetailsCompleted: { type: Boolean, default: false },
     lastLogin: Date,
   },
   { timestamps: true }
 );
+
+// Middleware to auto-calculate PassOut status on save
+userSchema.pre("save", function (next) {
+  if (this.admissionYear && this.courseDurationYears) {
+    const currentYear = new Date().getFullYear();
+    // If current year is > admission + duration, they are passed out
+    if (currentYear > this.admissionYear + this.courseDurationYears) {
+      this.isPassOut = true;
+    }
+  }
+  next();
+});
 
 module.exports = mongoose.model("User", userSchema);

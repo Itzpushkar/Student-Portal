@@ -5,9 +5,20 @@ const adminSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
 
-  // Admin Hierarchy Logic
+  // Role Structure
+  role: {
+    type: String,
+    enum: ["super-admin", "sub-admin"],
+    default: "sub-admin",
+  },
+
+  // For Sub Admins: Which branch do they manage? (e.g., "Computer", "Mechanical")
+  // Super Admin will have this as null or "ALL"
+  branch: { type: String },
+
+  // Hierarchy Logic
   isApproved: { type: Boolean, default: false },
-  approvedBy: { type: String }, // Name of admin who approved this account
+  approvedBy: { type: String },
 
   createdAt: { type: Date, default: Date.now },
 });
