@@ -1,43 +1,48 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import LandingPage from "./pages/LandingPage";
-import DashboardPage from "./pages/DashboardPage";
-// Admin Pages
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminLoginPage from "./pages/AdminLoginPage";
-import AdminSignupPage from "./pages/AdminSignupPage";
-// Auth Context & Protection
 import { AuthProvider } from "./context/AuthProvider";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+
+import LandingPage from "./pages/public/LandingPage";
+import AdminLoginPage from "./pages/auth/AdminLoginPage";
+import AdminSignupPage from "./pages/auth/AdminSignupPage";
+import StudentDashboard from "./pages/student/StudentDashboard";
+import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
+import SubAdminDashboard from "./pages/admin/SubAdminDashboard"; // NEW
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* --- Public Student Routes --- */}
-          {/* Note: Student Login/Signup is now handled inside LandingPage */}
           <Route path="/" element={<LandingPage />} />
-
-          {/* --- Hidden Admin Routes --- */}
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/admin-signup" element={<AdminSignupPage />} />
 
-          {/* --- Protected Student Route --- */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <StudentDashboard />
               </ProtectedRoute>
             }
           />
 
-          {/* --- Protected Admin Route --- */}
+          {/* Super Admin Route */}
           <Route
-            path="/admin"
+            path="/super-admin"
             element={
               <ProtectedRoute adminOnly={true}>
-                <AdminDashboard />
+                <SuperAdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Sub Admin Route */}
+          <Route
+            path="/sub-admin"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <SubAdminDashboard />
               </ProtectedRoute>
             }
           />

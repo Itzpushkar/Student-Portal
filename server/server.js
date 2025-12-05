@@ -57,10 +57,15 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// Safe Sanitization Middleware
 app.use((req, res, next) => {
   if (req.body) mongoSanitize.sanitize(req.body);
-  if (req.query) mongoSanitize.sanitize(req.query);
   if (req.params) mongoSanitize.sanitize(req.params);
+  try {
+    if (req.query) mongoSanitize.sanitize(req.query);
+  } catch (err) {
+    // Ignore read-only query property error in newer Node versions
+  }
   next();
 });
 
@@ -84,12 +89,11 @@ mongoose
 // ==========================================
 app.get("/", (req, res) => res.send("Student Portal Backend is Running..."));
 
-// Import Routes
-const userRoutes = require("./routes/userRoutes");
-const adminRoutes = require("./routes/adminRoutes");
+// FIX: Updated path to point to src/routes
+const userRoutes = require("./src/routes/userRoutes");
+const adminRoutes = require("./src/routes/adminRoutes");
 
 // Register Routes
-// NOTE: /api/user now handles Login/Signup AND Dashboard
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 
