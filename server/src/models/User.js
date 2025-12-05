@@ -19,6 +19,8 @@ const personalSchema = new mongoose.Schema(
     dob: String,
     contact: { type: String },
     address: String,
+    // FIX: Added tenthPercentage field
+    tenthPercentage: { type: String },
     course: String,
     branch: { type: String, required: true },
     profilePhoto: String,
@@ -40,7 +42,7 @@ const userSchema = new mongoose.Schema(
     courseDurationYears: { type: Number, default: 4 },
     isPassOut: { type: Boolean, default: false },
 
-    // --- UPDATED ACCOUNT STATUS ---
+    // --- ACCOUNT STATUS ---
     accountStatus: {
       status: {
         type: String,
@@ -57,6 +59,11 @@ const userSchema = new mongoose.Schema(
     personalDetails: personalSchema,
     academicDetails: [academicSchema],
     currentSemester: { type: Number, default: 1 },
+
+    // FIX: Added completion flags to root schema
+    isPersonalDetailsCompleted: { type: Boolean, default: false },
+    isAcademicDetailsCompleted: { type: Boolean, default: false },
+
     lastLogin: Date,
   },
   { timestamps: true }

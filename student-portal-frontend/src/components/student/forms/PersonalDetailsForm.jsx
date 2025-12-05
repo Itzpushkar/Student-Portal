@@ -10,7 +10,7 @@ export default function PersonalDetailsForm({
     dob: "",
     contact: "",
     address: "",
-    tenthPercentage: "",
+    tenthPercentage: "", // Field exists
     course: "",
     branch: "",
   });
@@ -26,7 +26,7 @@ export default function PersonalDetailsForm({
         dob: userData.personalDetails.dob || "",
         contact: userData.personalDetails.contact || "",
         address: userData.personalDetails.address || "",
-        // Ensure this field matches your DB schema exactly
+        // Ensure data maps correctly from DB
         tenthPercentage: userData.personalDetails.tenthPercentage || "",
         course: userData.personalDetails.course || "",
         branch: userData.personalDetails.branch || "",
@@ -36,7 +36,6 @@ export default function PersonalDetailsForm({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Basic validation constraints
     if (name === "fullName" && !/^[a-zA-Z\s]*$/.test(value)) return;
     if (name === "contact") {
       if (!/^\d*$/.test(value)) return;
@@ -69,7 +68,7 @@ export default function PersonalDetailsForm({
 
       const data = new FormData();
       data.append("userId", userId);
-      // Append all text fields
+      // Append text fields including tenthPercentage
       Object.keys(formData).forEach((key) => {
         data.append(key, formData[key]);
       });
@@ -85,15 +84,11 @@ export default function PersonalDetailsForm({
       });
 
       if (response.ok) {
-        // Trigger dashboard refresh via parent component
+        // This callback is crucial for Issue 2 (It tells parent to refetch user data)
         onComplete();
       } else {
         const errorData = await response.json();
-        if (response.status === 401) {
-          setError("Session expired. Please login again.");
-        } else {
-          setError(errorData.msg || "Failed to save details");
-        }
+        setError(errorData.msg || "Failed to save details");
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -139,7 +134,6 @@ export default function PersonalDetailsForm({
               <span className="text-4xl">👤</span>
             )}
 
-            {/* Overlay */}
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <span className="text-white text-xs font-bold">Change</span>
             </div>
@@ -169,7 +163,6 @@ export default function PersonalDetailsForm({
               onChange={handleChange}
               required
               className="input-field"
-              placeholder="Enter full name"
             />
           </div>
 
@@ -198,7 +191,6 @@ export default function PersonalDetailsForm({
               required
               maxLength={10}
               className="input-field"
-              placeholder="10-digit number"
             />
           </div>
 
@@ -234,7 +226,6 @@ export default function PersonalDetailsForm({
               <option value="Diploma">Diploma</option>
               <option value="B.Tech">B.Tech</option>
               <option value="B.E">B.E</option>
-              <option value="B.Sc">B.Sc</option>
               <option value="Other">Other</option>
             </select>
           </div>
@@ -272,7 +263,6 @@ export default function PersonalDetailsForm({
             onChange={handleChange}
             rows="3"
             className="input-field resize-none"
-            placeholder="Enter full address"
           />
         </div>
 
@@ -298,22 +288,8 @@ export default function PersonalDetailsForm({
       </form>
 
       <style>{`
-        .input-field { 
-            width: 100%; 
-            padding: 12px 16px; 
-            border-radius: 12px; 
-            border: 1px solid #e2e8f0; 
-            outline: none; 
-            background: #f8fafc; 
-            color: #334155;
-            font-weight: 500;
-            transition: all 0.2s; 
-        } 
-        .input-field:focus { 
-            border-color: #6366f1; 
-            background: white; 
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); 
-        }
+        .input-field { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; background: #f8fafc; color: #334155; font-weight: 500; transition: all 0.2s; } 
+        .input-field:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
       `}</style>
     </div>
   );

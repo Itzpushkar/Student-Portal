@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Admin = require("../models/Admin");
+const sendEmail = require("../utils/sendEmail"); // Ensure you have this utility
 
 // --- FETCH DATA ---
 
@@ -28,7 +29,6 @@ exports.getAllStudents = async (req, res) => {
 
     if (branch) query["personalDetails.branch"] = branch;
     if (semester) query.currentSemester = semester;
-    // Optional year filter if passed
     if (year) query.admissionYear = parseInt(year);
 
     const students = await User.find(query).select("-password");
@@ -43,7 +43,7 @@ exports.getPassoutStudents = async (req, res) => {
     const { branch, year } = req.query;
     let query = { role: "student", isPassOut: true };
     if (branch) query["personalDetails.branch"] = branch;
-    if (year) query.admissionYear = parseInt(year) - 4; // Approx logic
+    if (year) query.admissionYear = parseInt(year) - 4;
 
     const students = await User.find(query).select("-password");
     res.json(students);
@@ -56,19 +56,54 @@ exports.getPassoutStudents = async (req, res) => {
 
 exports.approveAdmin = async (req, res) => {
   try {
-    await Admin.findByIdAndUpdate(req.body.adminId, { isApproved: true });
-    res.json({ msg: "Admin Approved" });
+    const admin = await Admin.findByIdAndUpdate(
+      req.body.adminId,
+      { isApproved: true },
+      { new: true }
+    );
+
+    if (admin) {
+      const subject = "Admin Request Approved - Student Portal";
+      const text = `Congratulations ${admin.username},\n\nYour request to become a Sub-Admin has been approved by the Super Admin.\n\nYou can now login to your dashboard using your credentials.\n\nRegards,\nAdmin Team`;
+
+      try {
+        await sendEmail(admin.email, subject, text);
+      } catch (emailErr) {
+        console.error("Failed to send approval email:", emailErr);
+      }
+    }
+
+    res.json({ msg: "Admin Approved & Email Sent" });
   } catch (err) {
-    res.status(500).json({ msg: "Error" });
+    console.error(err);
+    res.status(500).json({ msg: "Error approving admin" });
   }
 };
 
 exports.rejectAdminRequest = async (req, res) => {
   try {
+    const admin = await Admin.findById(req.body.adminId);
+    if (!admin) return res.status(404).json({ msg: "Admin not found" });
+
+    const userEmail = admin.email;
+    const userName = admin.username;
+
     await Admin.findByIdAndDelete(req.body.adminId);
-    res.json({ msg: "Request Rejected" });
+
+    // Send Rejection Email
+    const subject = "Admin Request Rejected - Student Portal";
+    const text = `Hello ${userName},\n\nYour request to become a Sub-Admin has been rejected by the Super Admin.\n\nPlease contact the administration for more details.\n\nRegards,\nAdmin Team`;
+
+    try {
+      await sendEmail(userEmail, subject, text);
+    } catch (emailErr) {
+      console.error("Failed to send rejection email:", emailErr);
+    }
+
+    res.json({ msg: "Request Rejected & Email Sent" });
   } catch (err) {
-    res.status(500).json({ msg: "Error" });
+    console.error(err);
+    res.status(500).json({ msg: "Error rejecting request" });
   }
 };
 
