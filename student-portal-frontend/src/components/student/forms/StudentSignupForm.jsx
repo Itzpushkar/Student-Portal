@@ -1,21 +1,19 @@
 import { useState } from "react";
 
 export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
-  // Steps: 1 = Details Form, 2 = OTP Verification
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Form State
   const [form, setForm] = useState({
     fullName: "",
     enrollmentNo: "",
     username: "",
     email: "",
     password: "",
+    branch: "", // Added branch to state
   });
   const [otp, setOtp] = useState("");
 
-  // --- HANDLER: SIGNUP (STEP 1) ---
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -35,7 +33,6 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
       }
 
       if (res.ok) {
-        // Success: Move to OTP step
         setStep(2);
       } else {
         alert(data.msg || "Signup Failed");
@@ -48,7 +45,6 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
     }
   };
 
-  // --- HANDLER: VERIFY OTP (STEP 2) ---
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -62,7 +58,7 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
       const data = await res.json();
       if (res.ok) {
         alert("Account Created Successfully! Please Login.");
-        onSwitchToLogin(); // Redirect to login panel
+        onSwitchToLogin();
       } else {
         alert(data.msg || "Invalid OTP");
       }
@@ -75,7 +71,6 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6 pt-8">
         <h2 className="text-2xl font-bold text-slate-800">
           {step === 1 ? "Create Profile" : "Verify Email"}
@@ -101,11 +96,10 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
         </button>
       </div>
 
-      {/* STEP 1: REGISTRATION FORM */}
-      {step === 1 && (
+      {step === 1 ? (
         <form
           onSubmit={handleSignup}
-          className="space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar flex-1"
+          className="space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar flex-1 px-1"
         >
           <input
             className="pill-input"
@@ -132,6 +126,26 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
           />
+
+          {/* Branch Dropdown */}
+          <select
+            className="pill-input text-slate-600"
+            value={form.branch}
+            onChange={(e) => setForm({ ...form, branch: e.target.value })}
+            required
+          >
+            <option value="" disabled>
+              Select Branch
+            </option>
+            {["Computer", "Mechanical", "Civil", "Electrical", "EC"].map(
+              (b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              )
+            )}
+          </select>
+
           <input
             className="pill-input"
             type="password"
@@ -144,19 +158,25 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
             disabled={loading}
             className="w-full bg-green-600 text-white py-3 rounded-full font-bold shadow hover:bg-green-700 transition-all mt-4"
           >
-            {loading ? "Creating..." : "Sign Up"}
+            {loading ? "Sending OTP..." : "Sign Up"}
           </button>
-        </form>
-      )}
 
-      {/* STEP 2: OTP FORM */}
-      {step === 2 && (
+          <p className="text-center text-sm text-slate-500 mt-2">
+            Already have an account?{" "}
+            <span
+              onClick={onSwitchToLogin}
+              className="text-indigo-600 font-bold cursor-pointer hover:underline"
+            >
+              Login
+            </span>
+          </p>
+        </form>
+      ) : (
         <div className="space-y-6">
           <p className="text-slate-500 text-sm">
             We have sent a verification code to{" "}
             <span className="font-bold text-slate-800">{form.email}</span>
           </p>
-
           <input
             className="pill-input text-center text-2xl tracking-widest font-bold text-slate-800"
             placeholder="000000"
@@ -164,7 +184,6 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
           />
-
           <button
             onClick={handleVerify}
             disabled={loading}
@@ -172,7 +191,6 @@ export default function StudentSignupForm({ onClose, onSwitchToLogin }) {
           >
             {loading ? "Verifying..." : "Verify OTP"}
           </button>
-
           <button
             onClick={() => setStep(1)}
             className="w-full text-slate-400 text-sm hover:text-slate-600"

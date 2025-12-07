@@ -1,347 +1,4 @@
-// import { useState } from "react";
-// import {
-//   Quote,
-//   Edit2,
-//   User,
-//   AlertCircle,
-//   GraduationCap,
-//   CheckCircle2,
-//   Unlock,
-//   Lock,
-//   LogOut,
-// } from "lucide-react";
-
-// export default function DashboardOverview({ user, userData, fetchUserData }) {
-//   const [quote, setQuote] = useState(
-//     localStorage.getItem(`quote_${user._id}`) || "Knowledge is power."
-//   );
-//   const [isEditingQuote, setIsEditingQuote] = useState(false);
-//   const [activeSemester, setActiveSemester] = useState(null);
-//   const [semForm, setSemForm] = useState({
-//     gpa: "",
-//     backlogs: "",
-//     remarks: "",
-//   });
-
-//   const saveQuote = () => {
-//     localStorage.setItem(`quote_${user._id}`, quote);
-//     setIsEditingQuote(false);
-//   };
-
-//   const handlePhotoUpload = async (e) => {
-//     const file = e.target.files[0];
-//     if (!file) return;
-//     const formData = new FormData();
-//     formData.append("userId", user._id);
-//     formData.append("profilePhoto", file);
-//     await fetch("http://localhost:5000/api/user/personal", {
-//       method: "POST",
-//       credentials: "include",
-//       body: formData,
-//     });
-//     fetchUserData();
-//   };
-
-//   const handleSemesterSave = async (e) => {
-//     e.preventDefault();
-//     try {
-//       const formData = new FormData();
-//       formData.append("userId", user._id);
-//       formData.append("semester", activeSemester);
-//       formData.append("gpa", semForm.gpa);
-//       formData.append("backlogs", semForm.backlogs);
-//       // Note: Remarks/Images support would go here if form was expanded
-//       await fetch("http://localhost:5000/api/user/academic", {
-//         method: "POST",
-//         credentials: "include",
-//         body: formData,
-//       });
-//       setActiveSemester(null);
-//       fetchUserData();
-//     } catch (e) {
-//       alert("Failed to save");
-//     }
-//   };
-
-//   return (
-//     <div className="space-y-8 animate-fade-in">
-//       {/* Header Banner */}
-//       <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-//         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center relative z-10">
-//           <div className="mb-6 lg:mb-0">
-//             <h1 className="text-3xl lg:text-4xl font-extrabold mb-2">
-//               Welcome back,{" "}
-//               {userData?.personalDetails?.fullName?.split(" ")[0] ||
-//                 user.username}
-//               !
-//             </h1>
-//             {isEditingQuote ? (
-//               <div className="flex gap-2 mt-4">
-//                 <input
-//                   className="text-slate-800 px-4 py-2 rounded-xl w-full max-w-md outline-none focus:ring-2 focus:ring-white/50"
-//                   value={quote}
-//                   onChange={(e) => setQuote(e.target.value)}
-//                 />
-//                 <button
-//                   onClick={saveQuote}
-//                   className="bg-white/20 hover:bg-white/30 px-6 py-2 rounded-xl font-bold transition-colors"
-//                 >
-//                   Save
-//                 </button>
-//               </div>
-//             ) : (
-//               <div
-//                 onClick={() => setIsEditingQuote(true)}
-//                 className="flex items-center gap-2 opacity-90 cursor-pointer hover:opacity-100 transition-opacity group"
-//               >
-//                 <Quote
-//                   size={18}
-//                   className="fill-white/80 group-hover:fill-white"
-//                 />
-//                 <p className="italic text-lg font-medium">"{quote}"</p>
-//                 <Edit2
-//                   size={16}
-//                   className="opacity-0 group-hover:opacity-100 transition-opacity"
-//                 />
-//               </div>
-//             )}
-//           </div>
-
-//           {/* Profile Section in Banner */}
-//           <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/20">
-//             <div className="text-right hidden md:block">
-//               <p className="font-bold text-lg">
-//                 {userData?.personalDetails?.fullName || user.username}
-//               </p>
-//               <p className="text-sm opacity-80">{user.enrollmentNo}</p>
-//             </div>
-//             <div className="relative group w-16 h-16">
-//               <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white/50 shadow-md bg-slate-200/20">
-//                 {userData?.personalDetails?.profilePhoto ? (
-//                   <img
-//                     src={`http://localhost:5000/${userData.personalDetails.profilePhoto}`}
-//                     className="w-full h-full object-cover"
-//                     alt="Profile"
-//                   />
-//                 ) : (
-//                   <div className="w-full h-full flex items-center justify-center text-white/50 text-2xl">
-//                     <User size={28} />
-//                   </div>
-//                 )}
-//               </div>
-//               <label className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity backdrop-blur-sm">
-//                 <Edit2 className="text-white w-6 h-6" />
-//                 <input
-//                   type="file"
-//                   className="hidden"
-//                   accept="image/*"
-//                   onChange={handlePhotoUpload}
-//                 />
-//               </label>
-//             </div>
-//           </div>
-//         </div>
-//         <div className="absolute -right-20 -bottom-40 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-//       </div>
-
-//       {/* Promotion Alert */}
-//       {userData?.promotionStatus === "pending" && (
-//         <div className="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-2xl shadow-sm flex items-center gap-4">
-//           <div className="p-3 bg-amber-100 rounded-full text-amber-600">
-//             <AlertCircle size={24} />
-//           </div>
-//           <div>
-//             <h3 className="text-lg font-bold text-amber-800">
-//               Promotion Pending
-//             </h3>
-//             <p className="text-amber-700">
-//               Your request for the next semester is under review.
-//             </p>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Academic Grid */}
-//       <div>
-//         <div className="flex items-center justify-between mb-6">
-//           <h2 className="text-2xl font-bold flex items-center gap-3">
-//             <GraduationCap className="text-indigo-600" size={28} /> Academic
-//             Journey
-//           </h2>
-//         </div>
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-//           {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => {
-//             const semData = userData.academicDetails.find(
-//               (d) => d.semester === sem
-//             );
-//             const isCompleted = semData?.isCompleted;
-//             const isUnlocked =
-//               sem === 1 ||
-//               userData.academicDetails.some(
-//                 (d) => d.semester === sem - 1 && d.isCompleted
-//               );
-
-//             return (
-//               <button
-//                 key={sem}
-//                 disabled={!isUnlocked}
-//                 onClick={() => setActiveSemester(sem)}
-//                 className={`relative p-6 rounded-2xl transition-all text-left group overflow-hidden ${
-//                   isCompleted
-//                     ? "bg-white border-2 border-transparent hover:border-green-500 shadow-sm"
-//                     : isUnlocked
-//                     ? "bg-white border-2 border-transparent hover:border-indigo-500 shadow-sm"
-//                     : "bg-slate-200 border-2 border-transparent opacity-70 cursor-not-allowed"
-//                 }`}
-//               >
-//                 <div className="flex justify-between items-start mb-4">
-//                   <div>
-//                     <p className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-1">
-//                       Semester
-//                     </p>
-//                     <h3 className="text-3xl font-extrabold text-slate-800">
-//                       {sem}
-//                     </h3>
-//                   </div>
-//                   <div
-//                     className={`p-2 rounded-xl ${
-//                       isCompleted
-//                         ? "bg-green-100 text-green-600"
-//                         : isUnlocked
-//                         ? "bg-indigo-100 text-indigo-600"
-//                         : "bg-slate-300 text-slate-500"
-//                     }`}
-//                   >
-//                     {isCompleted ? (
-//                       <CheckCircle2 size={24} />
-//                     ) : isUnlocked ? (
-//                       <Unlock size={24} />
-//                     ) : (
-//                       <Lock size={24} />
-//                     )}
-//                   </div>
-//                 </div>
-//                 {isCompleted ? (
-//                   <div className="space-y-3">
-//                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-//                       <span className="text-sm font-medium text-slate-600">
-//                         GPA
-//                       </span>
-//                       <span className="font-bold text-slate-800">
-//                         {semData.gpa}
-//                       </span>
-//                     </div>
-//                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-//                       <span className="text-sm font-medium text-slate-600">
-//                         Backlogs
-//                       </span>
-//                       <span
-//                         className={`font-bold ${
-//                           semData.backlogs > 0
-//                             ? "text-red-500"
-//                             : "text-green-500"
-//                         }`}
-//                       >
-//                         {semData.backlogs}
-//                       </span>
-//                     </div>
-//                   </div>
-//                 ) : (
-//                   <div className="h-24 flex items-center justify-center text-slate-400 font-medium italic">
-//                     {isUnlocked ? "Tap to update details" : "Locked"}
-//                   </div>
-//                 )}
-//                 <div
-//                   className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity ${
-//                     isCompleted ? "bg-green-500" : "bg-indigo-500"
-//                   }`}
-//                 ></div>
-//               </button>
-//             );
-//           })}
-//         </div>
-//       </div>
-
-//       {/* Manual Request Button */}
-//       <div className="text-center pt-8 border-t border-slate-200">
-//         <button className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors flex items-center gap-2 mx-auto group">
-//           <span>Request Promotion Manually</span>
-//           <Edit2
-//             size={16}
-//             className="group-hover:translate-x-1 transition-transform"
-//           />
-//         </button>
-//       </div>
-
-//       {/* Modal for Semester Update */}
-//       {activeSemester && (
-//         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-//           <div className="bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl relative animate-scale-in">
-//             <button
-//               onClick={() => setActiveSemester(null)}
-//               className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 transition-colors p-2 hover:bg-slate-100 rounded-full"
-//             >
-//               <LogOut size={20} className="rotate-45" />
-//             </button>
-//             <h3 className="text-2xl font-bold text-slate-800 mb-8 text-center">
-//               Update Semester {activeSemester}
-//             </h3>
-//             <form onSubmit={handleSemesterSave} className="space-y-6">
-//               <div>
-//                 <label className="block text-sm font-bold text-slate-600 mb-2 ml-2">
-//                   Grade Point Average (GPA)
-//                 </label>
-//                 <input
-//                   className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold"
-//                   type="number"
-//                   step="0.01"
-//                   max="10"
-//                   required
-//                   value={semForm.gpa}
-//                   onChange={(e) =>
-//                     setSemForm({ ...semForm, gpa: e.target.value })
-//                   }
-//                 />
-//               </div>
-//               <div>
-//                 <label className="block text-sm font-bold text-slate-600 mb-2 ml-2">
-//                   Number of Backlogs
-//                 </label>
-//                 <input
-//                   className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold"
-//                   type="number"
-//                   required
-//                   value={semForm.backlogs}
-//                   onChange={(e) =>
-//                     setSemForm({ ...semForm, backlogs: e.target.value })
-//                   }
-//                 />
-//               </div>
-//               <div>
-//                 <label className="block text-sm font-bold text-slate-600 mb-2 ml-2">
-//                   Remarks (Optional)
-//                 </label>
-//                 <textarea
-//                   className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium resize-none"
-//                   rows="3"
-//                   value={semForm.remarks}
-//                   onChange={(e) =>
-//                     setSemForm({ ...semForm, remarks: e.target.value })
-//                   }
-//                 ></textarea>
-//               </div>
-//               <button className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30">
-//                 Save Details
-//               </button>
-//             </form>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Quote,
   Edit2,
@@ -355,12 +12,19 @@ import {
   Upload,
 } from "lucide-react";
 
-export default function DashboardOverview({ user, userData, fetchUserData }) {
+export default function DashboardOverview({
+  user,
+  userData,
+  fetchUserData,
+  setView,
+}) {
+  // --- STATE ---
   const [quote, setQuote] = useState(
     localStorage.getItem(`quote_${user._id}`) || "Knowledge is power."
   );
   const [isEditingQuote, setIsEditingQuote] = useState(false);
 
+  // Semester Modal State
   const [activeSemester, setActiveSemester] = useState(null);
   const [semForm, setSemForm] = useState({
     gpa: "",
@@ -368,7 +32,28 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
     remarks: "",
   });
   const [resultImage, setResultImage] = useState(null);
+  const [existingImage, setExistingImage] = useState(null);
+  const [isHoveringSem, setIsHoveringSem] = useState(null);
 
+  // --- CALCULATIONS ---
+  const stats = useMemo(() => {
+    if (!userData?.academicDetails?.length)
+      return { cgpa: "0.00", totalBacklogs: 0 };
+
+    const totalBacklogs = userData.academicDetails.reduce(
+      (sum, sem) => sum + (parseInt(sem.backlogs) || 0),
+      0
+    );
+    const totalGpa = userData.academicDetails.reduce(
+      (sum, sem) => sum + (parseFloat(sem.gpa) || 0),
+      0
+    );
+    const cgpa = (totalGpa / userData.academicDetails.length).toFixed(2);
+
+    return { cgpa, totalBacklogs };
+  }, [userData]);
+
+  // --- HANDLERS ---
   const saveQuote = () => {
     localStorage.setItem(`quote_${user._id}`, quote);
     setIsEditingQuote(false);
@@ -385,7 +70,7 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
       credentials: "include",
       body: formData,
     });
-    fetchUserData();
+    fetchUserData(true);
   };
 
   const handleSemesterSave = async (e) => {
@@ -397,19 +82,26 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
       formData.append("gpa", semForm.gpa);
       formData.append("backlogs", semForm.backlogs);
       formData.append("remarks", semForm.remarks);
-      if (resultImage) formData.append("marksheets", resultImage);
 
-      await fetch("http://localhost:5000/api/user/academic", {
+      if (resultImage) {
+        formData.append("marksheets", resultImage);
+      }
+
+      const res = await fetch("http://localhost:5000/api/user/academic", {
         method: "POST",
         credentials: "include",
         body: formData,
       });
 
-      setActiveSemester(null);
-      fetchUserData();
-      alert("Academic Details Saved & Email Sent!");
+      if (res.ok) {
+        setActiveSemester(null);
+        fetchUserData();
+        alert("Details Saved & Report Emailed!");
+      } else {
+        alert("Failed to save.");
+      }
     } catch (e) {
-      alert("Failed to save");
+      alert("Error saving details");
     }
   };
 
@@ -420,10 +112,10 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
         { method: "POST", credentials: "include" }
       );
       if (res.ok) {
-        alert("Promotion Request Sent to Admin");
+        alert("Promotion Request Sent to Sub-Admin");
         fetchUserData();
       } else {
-        alert("Request Already Pending");
+        alert("Request Already Pending or Invalid");
       }
     } catch (e) {
       alert("Error sending request");
@@ -431,13 +123,12 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
   };
 
   const handleSemesterClick = (sem, isUnlocked) => {
-    // FIX: Strict check for Personal Details completion
     if (!userData.isPersonalDetailsCompleted) {
       alert("Please fill your Personal Details first!");
+      if (setView) setView("profile");
       return;
     }
 
-    // Only open if unlocked or completed
     if (isUnlocked) {
       const existingData = userData.academicDetails.find(
         (d) => d.semester === sem
@@ -447,56 +138,56 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
         backlogs: existingData?.backlogs || "",
         remarks: existingData?.remarks || "",
       });
+      setExistingImage(existingData?.marksheetImages?.[0] || null);
+      setResultImage(null);
       setActiveSemester(sem);
     }
   };
 
+  // --- RENDER ---
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Banner */}
-      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center relative z-10">
-          <div className="mb-6 lg:mb-0">
-            <h1 className="text-3xl lg:text-4xl font-extrabold mb-2">
-              Welcome back,{" "}
-              {userData?.personalDetails?.fullName?.split(" ")[0] ||
-                user.username}
-              !
-            </h1>
-            {isEditingQuote ? (
-              <div className="flex gap-2 mt-4">
-                <input
-                  className="text-slate-800 px-4 py-2 rounded-xl w-full max-w-md outline-none"
-                  value={quote}
-                  onChange={(e) => setQuote(e.target.value)}
-                />
-                <button
-                  onClick={saveQuote}
-                  className="bg-white/20 hover:bg-white/30 px-6 py-2 rounded-xl font-bold"
-                >
-                  Save
-                </button>
-              </div>
-            ) : (
-              <div
-                onClick={() => setIsEditingQuote(true)}
-                className="flex items-center gap-2 opacity-90 cursor-pointer hover:opacity-100 transition-opacity"
+    <div className="space-y-12 animate-fade-in">
+      {/* 1. CUSTOM BANNER LAYOUT */}
+      <div className="relative mt-8">
+        {/* Quote Section (Above Banner, Left Aligned) */}
+        <div className="absolute -top-8 left-0 z-10">
+          {isEditingQuote ? (
+            <div className="flex gap-2 items-center bg-white p-1 rounded-lg shadow-sm border border-slate-200">
+              <input
+                className="text-sm text-slate-600 outline-none w-64 bg-transparent px-2"
+                value={quote}
+                onChange={(e) => setQuote(e.target.value)}
+                autoFocus
+              />
+              <button
+                onClick={saveQuote}
+                className="text-xs bg-indigo-600 text-white px-2 py-1 rounded font-bold hover:bg-indigo-700"
               >
-                <Quote size={18} className="fill-white/80" />
-                <p className="italic text-lg font-medium">"{quote}"</p>
-                <Edit2 size={16} />
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/20">
-            <div className="text-right hidden md:block">
-              <p className="font-bold text-lg">
-                {userData?.personalDetails?.fullName || user.username}
-              </p>
-              <p className="text-sm opacity-80">{user.enrollmentNo}</p>
+                Save
+              </button>
             </div>
-            <div className="relative group w-16 h-16">
-              <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white/50 shadow-md bg-slate-200/20">
+          ) : (
+            <div
+              onClick={() => setIsEditingQuote(true)}
+              className="flex items-center gap-2 cursor-pointer group text-slate-500 hover:text-indigo-600 transition-colors"
+            >
+              <Quote size={14} className="fill-current rotate-180" />
+              <p className="italic text-sm font-medium">"{quote}"</p>
+              <Edit2
+                size={12}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Main Banner Card */}
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden h-48 flex items-center">
+          {/* Left Content Wrapper */}
+          <div className="flex items-center gap-6 z-10 w-full">
+            {/* 1. Circle Profile Photo */}
+            <div className="relative group flex-shrink-0">
+              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white/30 shadow-lg bg-white/10 flex items-center justify-center">
                 {userData?.personalDetails?.profilePhoto ? (
                   <img
                     src={`http://localhost:5000/${userData.personalDetails.profilePhoto}`}
@@ -504,13 +195,12 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
                     alt="Profile"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/50 text-2xl">
-                    <User size={28} />
-                  </div>
+                  <User size={48} className="text-white/50" />
                 )}
               </div>
-              <label className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity backdrop-blur-sm">
-                <Edit2 className="text-white w-6 h-6" />
+              {/* Hover Upload */}
+              <label className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                <Edit2 className="text-white drop-shadow-md" size={24} />
                 <input
                   type="file"
                   className="hidden"
@@ -519,11 +209,78 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
                 />
               </label>
             </div>
+
+            {/* 2. Middle Section: Name & Details */}
+            <div className="flex-1 flex flex-col justify-center">
+              {/* Username */}
+              <h1 className="text-4xl font-extrabold mb-3 tracking-tight">
+                {userData?.personalDetails?.fullName || user.username}
+              </h1>
+
+              {/* Details Row (Separated by |) */}
+              <div className="flex items-center gap-3 text-indigo-100 font-medium text-sm md:text-base">
+                <div
+                  className="flex items-center gap-2 group cursor-pointer hover:text-white transition-colors"
+                  onClick={() => setView("profile")}
+                >
+                  <span>
+                    {userData?.personalDetails?.branch || "Branch N/A"}
+                  </span>
+                  <Edit2
+                    size={12}
+                    className="opacity-0 group-hover:opacity-100"
+                  />
+                </div>
+                <span className="opacity-50 text-lg font-light">|</span>
+                <div
+                  className="flex items-center gap-2 group cursor-pointer hover:text-white transition-colors"
+                  onClick={() => setView("profile")}
+                >
+                  <span>{user.enrollmentNo}</span>
+                  <Edit2
+                    size={12}
+                    className="opacity-0 group-hover:opacity-100"
+                  />
+                </div>
+                <span className="opacity-50 text-lg font-light">|</span>
+                <div
+                  className="flex items-center gap-2 group cursor-pointer hover:text-white transition-colors"
+                  onClick={() => setView("profile")}
+                >
+                  <span className="truncate max-w-[200px]">{user.email}</span>
+                  <Edit2
+                    size={12}
+                    className="opacity-0 group-hover:opacity-100"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Right Section: Stats Boxes */}
+            <div className="flex gap-4 ml-auto">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-4 rounded-2xl text-center min-w-[100px] shadow-lg">
+                <p className="text-xs font-bold text-indigo-200 uppercase tracking-wider mb-1">
+                  CGPA
+                </p>
+                <p className="text-2xl font-black text-white">{stats.cgpa}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-4 rounded-2xl text-center min-w-[100px] shadow-lg">
+                <p className="text-xs font-bold text-red-200 uppercase tracking-wider mb-1">
+                  Backlogs
+                </p>
+                <p className="text-2xl font-black text-white">
+                  {stats.totalBacklogs}
+                </p>
+              </div>
+            </div>
           </div>
+
+          {/* Background Decor */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full translate-x-1/3 -translate-y-1/2 blur-3xl pointer-events-none"></div>
         </div>
       </div>
 
-      {/* Promotion Alert */}
+      {/* 2. PROMOTION ALERT */}
       {userData?.promotionStatus === "pending" && (
         <div className="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-2xl shadow-sm flex items-center gap-4">
           <div className="p-3 bg-amber-100 rounded-full text-amber-600">
@@ -533,197 +290,252 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
             <h3 className="text-lg font-bold text-amber-800">
               Promotion Pending
             </h3>
-            <p className="text-amber-700">Your request is under review.</p>
+            <p className="text-amber-700">
+              Your request is being reviewed by the Sub-Admin.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Academic Grid */}
+      {/* 3. ACADEMIC GRID */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold flex items-center gap-3">
+          <h2 className="text-2xl font-bold flex items-center gap-3 text-slate-800">
             <GraduationCap className="text-indigo-600" size={28} /> Academic
             Journey
           </h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => {
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((sem) => {
             const semData = userData.academicDetails.find(
               (d) => d.semester === sem
             );
             const isCompleted = semData?.isCompleted;
             const isUnlocked = sem === 1 || userData.currentSemester >= sem;
 
+            const isNextSemester = sem === userData.currentSemester + 1;
+            const currentSemData = userData.academicDetails.find(
+              (d) => d.semester === userData.currentSemester
+            );
+            const isCurrentSemFilled = currentSemData?.isCompleted;
+            const canRequestPromotion =
+              isNextSemester &&
+              isCurrentSemFilled &&
+              userData.promotionStatus !== "pending";
+
             return (
-              <button
+              <div
                 key={sem}
-                // VISUAL DISABLE: Only look disabled if locked. Click logic handled in handler.
-                className={`relative p-6 rounded-2xl transition-all text-left group overflow-hidden ${
-                  isCompleted
-                    ? "bg-white border-2 border-transparent hover:border-green-500 shadow-sm"
-                    : isUnlocked
-                    ? "bg-white border-2 border-transparent hover:border-indigo-500 shadow-sm"
-                    : "bg-slate-200 border-2 border-transparent opacity-70 cursor-not-allowed"
-                }`}
-                onClick={() => handleSemesterClick(sem, isUnlocked)}
+                className="relative group"
+                onMouseEnter={() => setIsHoveringSem(sem)}
+                onMouseLeave={() => setIsHoveringSem(null)}
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-1">
-                      Semester
+                <button
+                  disabled={!isUnlocked && !isNextSemester}
+                  onClick={() => handleSemesterClick(sem, isUnlocked)}
+                  className={`w-full relative p-6 rounded-2xl transition-all text-left overflow-hidden h-40 flex flex-col justify-between ${
+                    isCompleted
+                      ? "bg-white border-2 border-transparent hover:border-green-500 shadow-sm"
+                      : isUnlocked
+                      ? "bg-white border-2 border-transparent hover:border-indigo-500 shadow-sm"
+                      : "bg-slate-100 border-2 border-slate-200"
+                  }`}
+                >
+                  <div className="flex justify-between items-start w-full">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Semester
+                      </p>
+                      <h3 className="text-3xl font-extrabold text-slate-700">
+                        {sem}
+                      </h3>
+                    </div>
+                    <div
+                      className={`p-2 rounded-xl ${
+                        isCompleted
+                          ? "bg-green-100 text-green-600"
+                          : isUnlocked
+                          ? "bg-indigo-100 text-indigo-600"
+                          : "bg-slate-300 text-slate-400"
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle2 size={24} />
+                      ) : isUnlocked ? (
+                        <Unlock size={24} />
+                      ) : (
+                        <Lock size={24} />
+                      )}
+                    </div>
+                  </div>
+
+                  {isCompleted ? (
+                    <div className="flex gap-4">
+                      <div>
+                        <span className="text-xs text-slate-400 block">
+                          GPA
+                        </span>
+                        <span className="font-bold text-slate-700">
+                          {semData.gpa}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-slate-400 block">
+                          Backlogs
+                        </span>
+                        <span
+                          className={`font-bold ${
+                            semData.backlogs > 0
+                              ? "text-red-500"
+                              : "text-green-500"
+                          }`}
+                        >
+                          {semData.backlogs}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-400 text-sm font-medium italic">
+                      {isUnlocked ? "Tap to fill details" : "Locked"}
+                    </div>
+                  )}
+                </button>
+
+                {/* HOVER OVERLAY: REQUEST PROMOTION */}
+                {canRequestPromotion && isHoveringSem === sem && (
+                  <div className="absolute inset-0 bg-indigo-900/95 rounded-2xl flex flex-col items-center justify-center text-white backdrop-blur-sm animate-fade-in z-20 cursor-default">
+                    <p className="font-bold mb-3 text-center px-4">
+                      Current Semester Completed!
                     </p>
-                    <h3 className="text-3xl font-extrabold text-slate-800">
-                      {sem}
-                    </h3>
-                  </div>
-                  <div
-                    className={`p-2 rounded-xl ${
-                      isCompleted
-                        ? "bg-green-100 text-green-600"
-                        : isUnlocked
-                        ? "bg-indigo-100 text-indigo-600"
-                        : "bg-slate-300 text-slate-500"
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <CheckCircle2 size={24} />
-                    ) : isUnlocked ? (
-                      <Unlock size={24} />
-                    ) : (
-                      <Lock size={24} />
-                    )}
-                  </div>
-                </div>
-                {isCompleted ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                      <span className="text-sm font-medium text-slate-600">
-                        GPA
-                      </span>
-                      <span className="font-bold text-slate-800">
-                        {semData.gpa}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                      <span className="text-sm font-medium text-slate-600">
-                        Backlogs
-                      </span>
-                      <span
-                        className={`font-bold ${
-                          semData.backlogs > 0
-                            ? "text-red-500"
-                            : "text-green-500"
-                        }`}
-                      >
-                        {semData.backlogs}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-24 flex items-center justify-center text-slate-400 font-medium italic">
-                    {isUnlocked ? "Tap to update details" : "Locked"}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRequestPromotion();
+                      }}
+                      className="bg-white text-indigo-900 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-lg"
+                    >
+                      Request Promotion
+                    </button>
                   </div>
                 )}
-              </button>
+
+                {/* Pending State Overlay */}
+                {isNextSemester && userData.promotionStatus === "pending" && (
+                  <div className="absolute inset-0 bg-amber-50/80 rounded-2xl border-2 border-dashed border-amber-300 flex items-center justify-center z-10 pointer-events-none backdrop-blur-[1px]">
+                    <span className="bg-white text-amber-600 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm border border-amber-100">
+                      Request Pending
+                    </span>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
       </div>
 
-      {/* Manual Request */}
-      <div className="text-center pt-8 border-t border-slate-200">
-        <button
-          onClick={handleRequestPromotion}
-          disabled={userData.promotionStatus === "pending"}
-          className={`text-sm font-bold transition-colors flex items-center gap-2 mx-auto px-6 py-3 rounded-full ${
-            userData.promotionStatus === "pending"
-              ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-              : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg"
-          }`}
-        >
-          <span>
-            {userData.promotionStatus === "pending"
-              ? "Request Pending..."
-              : "Request Promotion to Next Semester"}
-          </span>
-          <Edit2 size={16} />
-        </button>
-      </div>
-
-      {/* Modal */}
+      {/* 4. MODAL: SEMESTER FORM */}
       {activeSemester && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl relative animate-scale-in">
+          <div className="bg-white w-full max-w-lg p-8 rounded-3xl shadow-2xl relative animate-scale-in max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setActiveSemester(null)}
               className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 transition-colors p-2 hover:bg-slate-100 rounded-full"
             >
               <LogOut size={20} className="rotate-45" />
             </button>
-            <h3 className="text-2xl font-bold text-slate-800 mb-8 text-center">
-              Update Semester {activeSemester}
+            <h3 className="text-2xl font-bold text-slate-800 mb-2 text-center">
+              Semester {activeSemester}
             </h3>
-            <form onSubmit={handleSemesterSave} className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-slate-600 mb-2 ml-2">
-                  Grade Point Average (GPA)
-                </label>
-                <input
-                  className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-bold"
-                  type="number"
-                  step="0.01"
-                  max="10"
-                  required
-                  value={semForm.gpa}
-                  onChange={(e) =>
-                    setSemForm({ ...semForm, gpa: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-600 mb-2 ml-2">
-                  Backlogs
-                </label>
-                <input
-                  className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-bold"
-                  type="number"
-                  required
-                  value={semForm.backlogs}
-                  onChange={(e) =>
-                    setSemForm({ ...semForm, backlogs: e.target.value })
-                  }
-                />
-              </div>
+            <p className="text-center text-slate-500 mb-8 text-sm">
+              Enter your academic performance.
+            </p>
 
-              {/* Added Result Image Upload */}
-              <div>
-                <label className="block text-sm font-bold text-slate-600 mb-2 ml-2">
-                  Result Image
-                </label>
-                <div className="relative border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer">
+            <form onSubmit={handleSemesterSave} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">
+                    GPA
+                  </label>
                   <input
-                    type="file"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={(e) => setResultImage(e.target.files[0])}
-                    accept="image/*"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-slate-800 outline-none focus:border-indigo-500 font-bold"
+                    type="number"
+                    step="0.01"
+                    max="10"
+                    required
+                    value={semForm.gpa}
+                    onChange={(e) =>
+                      setSemForm({ ...semForm, gpa: e.target.value })
+                    }
                   />
-                  <div className="flex flex-col items-center gap-2 text-slate-400">
-                    <Upload size={24} />
-                    <span className="text-sm font-medium">
-                      {resultImage
-                        ? resultImage.name
-                        : "Tap to upload marksheet"}
-                    </span>
-                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">
+                    Backlogs
+                  </label>
+                  <input
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-slate-800 outline-none focus:border-indigo-500 font-bold"
+                    type="number"
+                    required
+                    value={semForm.backlogs}
+                    onChange={(e) =>
+                      setSemForm({ ...semForm, backlogs: e.target.value })
+                    }
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-600 mb-2 ml-2">
+                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">
+                  Result Marksheet
+                </label>
+                <div className="relative border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:bg-slate-50 transition-colors cursor-pointer group bg-slate-50">
+                  <input
+                    type="file"
+                    className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                    onChange={(e) => setResultImage(e.target.files[0])}
+                    accept="image/*"
+                  />
+
+                  {resultImage ? (
+                    <div className="relative z-10">
+                      <img
+                        src={URL.createObjectURL(resultImage)}
+                        className="h-40 mx-auto rounded-lg shadow-sm object-contain bg-white"
+                        alt="New Upload"
+                      />
+                      <p className="text-xs text-green-600 mt-2 font-bold bg-green-50 inline-block px-2 py-1 rounded">
+                        New Image Selected
+                      </p>
+                    </div>
+                  ) : existingImage ? (
+                    <div className="relative z-10">
+                      <img
+                        src={`http://localhost:5000/${existingImage}`}
+                        className="h-40 mx-auto rounded-lg shadow-sm object-contain bg-white"
+                        alt="Existing"
+                      />
+                      <p className="text-xs text-indigo-600 mt-2 font-bold bg-indigo-50 inline-block px-2 py-1 rounded">
+                        Current Marksheet
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-slate-400 py-6">
+                      <Upload size={32} className="text-slate-300" />
+                      <span className="text-sm font-medium">
+                        Tap to upload result
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">
                   Remarks
                 </label>
                 <textarea
-                  className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-medium resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-slate-800 outline-none focus:border-indigo-500 font-medium resize-none"
                   rows="3"
                   value={semForm.remarks}
                   onChange={(e) =>
@@ -731,7 +543,7 @@ export default function DashboardOverview({ user, userData, fetchUserData }) {
                   }
                 ></textarea>
               </div>
-              <button className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 shadow-lg">
+              <button className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all">
                 Save Details
               </button>
             </form>

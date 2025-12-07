@@ -1,6 +1,16 @@
 const User = require("../models/User");
 const Admin = require("../models/Admin");
-const sendEmail = require("../utils/sendEmail"); // Ensure you have this utility
+const sendEmail = require("../utils/sendEmail");
+
+// --- CHECKS ---
+exports.checkSuperAdmin = async (req, res) => {
+  try {
+    const exists = await Admin.exists({ role: "super-admin" });
+    res.json({ exists: !!exists });
+  } catch (err) {
+    res.status(500).json({ msg: "Server Error" });
+  }
+};
 
 // --- FETCH DATA ---
 
@@ -56,6 +66,7 @@ exports.getPassoutStudents = async (req, res) => {
 
 exports.approveAdmin = async (req, res) => {
   try {
+    // 1. Update the Admin status
     const admin = await Admin.findByIdAndUpdate(
       req.body.adminId,
       { isApproved: true },
@@ -63,6 +74,7 @@ exports.approveAdmin = async (req, res) => {
     );
 
     if (admin) {
+      // 2. Send Approval Email
       const subject = "Admin Request Approved - Student Portal";
       const text = `Congratulations ${admin.username},\n\nYour request to become a Sub-Admin has been approved by the Super Admin.\n\nYou can now login to your dashboard using your credentials.\n\nRegards,\nAdmin Team`;
 
@@ -70,6 +82,7 @@ exports.approveAdmin = async (req, res) => {
         await sendEmail(admin.email, subject, text);
       } catch (emailErr) {
         console.error("Failed to send approval email:", emailErr);
+        // We don't block the response if email fails, but log it
       }
     }
 
@@ -88,9 +101,10 @@ exports.rejectAdminRequest = async (req, res) => {
     const userEmail = admin.email;
     const userName = admin.username;
 
+    // 1. Delete the Admin record
     await Admin.findByIdAndDelete(req.body.adminId);
 
-    // Send Rejection Email
+    // 2. Send Rejection Email
     const subject = "Admin Request Rejected - Student Portal";
     const text = `Hello ${userName},\n\nYour request to become a Sub-Admin has been rejected by the Super Admin.\n\nPlease contact the administration for more details.\n\nRegards,\nAdmin Team`;
 
@@ -118,7 +132,7 @@ exports.toggleBanUser = async (req, res) => {
       user.accountStatus.bannedBy = req.user.username;
     }
     await user.save();
-    res.json({ msg: "Status Updated" });
+    res.json({ msg: "Status Updated", status: user.accountStatus.status });
   } catch (err) {
     res.status(500).json({ msg: "Error" });
   }
@@ -159,5 +173,5 @@ exports.deleteUser = async (req, res) => {
 };
 
 exports.getActivities = async (req, res) => {
-  res.json([]); // Placeholder
+  res.json([]);
 };

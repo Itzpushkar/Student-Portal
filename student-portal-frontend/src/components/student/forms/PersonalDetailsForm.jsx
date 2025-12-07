@@ -10,26 +10,27 @@ export default function PersonalDetailsForm({
     dob: "",
     contact: "",
     address: "",
-    tenthPercentage: "", // Field exists
-    course: "",
+    tenthPercentage: "",
+    course: "Diploma", // Forced
     branch: "",
+    enrollmentNo: "", // Read-only
   });
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // --- POPULATE FORM DATA ---
+  // --- POPULATE ---
   useEffect(() => {
-    if (userData && userData.personalDetails) {
+    if (userData) {
       setFormData({
-        fullName: userData.personalDetails.fullName || userData.username || "",
-        dob: userData.personalDetails.dob || "",
-        contact: userData.personalDetails.contact || "",
-        address: userData.personalDetails.address || "",
-        // Ensure data maps correctly from DB
-        tenthPercentage: userData.personalDetails.tenthPercentage || "",
-        course: userData.personalDetails.course || "",
-        branch: userData.personalDetails.branch || "",
+        fullName: userData.personalDetails?.fullName || userData.username || "",
+        dob: userData.personalDetails?.dob || "",
+        contact: userData.personalDetails?.contact || "",
+        address: userData.personalDetails?.address || "",
+        tenthPercentage: userData.personalDetails?.tenthPercentage || "",
+        course: "Diploma", // Enforce Diploma
+        branch: userData.personalDetails?.branch || "",
+        enrollmentNo: userData.enrollmentNo || "", // From User Root
       });
     }
   }, [userData]);
@@ -44,9 +45,7 @@ export default function PersonalDetailsForm({
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleFileChange = (e) => {
-    setProfilePhoto(e.target.files[0]);
-  };
+  const handleFileChange = (e) => setProfilePhoto(e.target.files[0]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,14 +67,12 @@ export default function PersonalDetailsForm({
 
       const data = new FormData();
       data.append("userId", userId);
-      // Append text fields including tenthPercentage
+      // Append all except read-only if needed, but backend updates specific fields
       Object.keys(formData).forEach((key) => {
-        data.append(key, formData[key]);
+        if (key !== "enrollmentNo") data.append(key, formData[key]);
       });
 
-      if (profilePhoto) {
-        data.append("profilePhoto", profilePhoto);
-      }
+      if (profilePhoto) data.append("profilePhoto", profilePhoto);
 
       const response = await fetch("http://localhost:5000/api/user/personal", {
         method: "POST",
@@ -84,7 +81,6 @@ export default function PersonalDetailsForm({
       });
 
       if (response.ok) {
-        // This callback is crucial for Issue 2 (It tells parent to refetch user data)
         onComplete();
       } else {
         const errorData = await response.json();
@@ -115,7 +111,7 @@ export default function PersonalDetailsForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* PROFILE PHOTO UPLOAD */}
+        {/* PHOTO */}
         <div className="flex flex-col items-center justify-center mb-6">
           <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center overflow-hidden mb-3 border-4 border-slate-50 shadow-sm relative group">
             {profilePhoto ? (
@@ -133,12 +129,10 @@ export default function PersonalDetailsForm({
             ) : (
               <span className="text-4xl">👤</span>
             )}
-
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <span className="text-white text-xs font-bold">Change</span>
             </div>
           </div>
-
           <label className="cursor-pointer text-indigo-600 text-sm font-bold hover:text-indigo-700 transition-colors">
             Upload New Photo
             <input
@@ -150,8 +144,20 @@ export default function PersonalDetailsForm({
           </label>
         </div>
 
-        {/* INPUT GRID */}
+        {/* INPUTS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+              Enrollment No
+            </label>
+            <input
+              type="text"
+              value={formData.enrollmentNo}
+              readOnly
+              className="input-field bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200 focus:border-slate-200 focus:shadow-none"
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
               Full Name
@@ -163,6 +169,7 @@ export default function PersonalDetailsForm({
               onChange={handleChange}
               required
               className="input-field"
+              placeholder="Enter full name"
             />
           </div>
 
@@ -191,6 +198,7 @@ export default function PersonalDetailsForm({
               required
               maxLength={10}
               className="input-field"
+              placeholder="10-digit number"
             />
           </div>
 
@@ -219,14 +227,10 @@ export default function PersonalDetailsForm({
             <select
               name="course"
               value={formData.course}
-              onChange={handleChange}
-              className="input-field appearance-none"
+              disabled
+              className="input-field appearance-none bg-slate-50 cursor-not-allowed"
             >
-              <option value="">Select Course</option>
               <option value="Diploma">Diploma</option>
-              <option value="B.Tech">B.Tech</option>
-              <option value="B.E">B.E</option>
-              <option value="Other">Other</option>
             </select>
           </div>
 
@@ -263,10 +267,10 @@ export default function PersonalDetailsForm({
             onChange={handleChange}
             rows="3"
             className="input-field resize-none"
+            placeholder="Enter full address"
           />
         </div>
 
-        {/* ACTIONS */}
         <div className="flex gap-4 pt-4">
           {onCancel && (
             <button

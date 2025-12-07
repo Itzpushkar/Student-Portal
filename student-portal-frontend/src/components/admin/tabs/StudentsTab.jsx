@@ -6,19 +6,31 @@ export default function StudentsTab({ data, subTab, onReadMore }) {
       {data.map((item) => (
         <div
           key={item._id}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-lg transition-all relative overflow-hidden"
+          className="group bg-white rounded-[20px] p-6 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300"
         >
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500">
-              {item.username?.[0]}
+          <div className="flex items-center gap-4 mb-5 pb-5 border-b border-slate-50">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-indigo-200 overflow-hidden">
+              {item.personalDetails?.profilePhoto ? (
+                <img
+                  src={`http://localhost:5000/${item.personalDetails.profilePhoto}`}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                item.username?.[0].toUpperCase()
+              )}
             </div>
             <div>
-              <h4 className="font-bold text-slate-800">{item.username}</h4>
-              <p className="text-xs text-slate-500">{item.enrollmentNo}</p>
+              <h4 className="font-bold text-slate-800 text-lg leading-tight">
+                {item.username}
+              </h4>
+              <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
+                {item.enrollmentNo}
+              </p>
             </div>
           </div>
 
-          <div className="space-y-2 mb-4 text-sm text-slate-600">
+          <div className="space-y-3 mb-6 text-sm text-slate-600">
             {subTab === "personal" ? (
               <>
                 <InfoRow label="Mobile" value={item.personalDetails?.contact} />
@@ -42,9 +54,9 @@ export default function StudentsTab({ data, subTab, onReadMore }) {
           </div>
           <button
             onClick={() => onReadMore(item)}
-            className="w-full py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-600 hover:text-white transition-colors"
+            className="w-full py-3 bg-slate-50 text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-600 hover:text-white transition-all duration-300 shadow-sm"
           >
-            Read More
+            Read Details
           </button>
         </div>
       ))}

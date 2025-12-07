@@ -11,10 +11,10 @@ const pendingUserSchema = new mongoose.Schema({
   // Student specific
   enrollmentNo: { type: String },
   fullName: { type: String },
+  branch: { type: String }, // ADDED: To store branch during signup
 
   // Admin specific
-  role: { type: String, default: "student" }, // 'student', 'super-admin', 'sub-admin'
-  branch: { type: String },
+  role: { type: String, default: "student" },
   post: { type: String },
 });
 

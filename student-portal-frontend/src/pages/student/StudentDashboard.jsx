@@ -1624,12 +1624,10 @@
 //     </div>
 //   );
 // }
-
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
 
-// FIX: Updated imports to point to components/student/forms and dashboard
 import PersonalDetailsForm from "../../components/student/forms/PersonalDetailsForm";
 import AcademicDetailsForm from "../../components/student/forms/AcademicDetailsForm";
 import Sidebar from "../../components/student/dashboard/Sidebar";
@@ -1651,7 +1649,6 @@ export default function StudentDashboard() {
     }
     fetchUserData();
 
-    // Polling only on overview
     let interval;
     if (currentView === "dashboard") {
       interval = setInterval(() => fetchUserData(true), 10000);
@@ -1686,31 +1683,31 @@ export default function StudentDashboard() {
   if (loading && !userData)
     return (
       <div className="h-screen flex items-center justify-center bg-slate-900 text-slate-400 font-sans">
-        Loading Portal...
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p>Loading Portal...</p>
+        </div>
       </div>
     );
 
   return (
     <div className="min-h-screen bg-slate-100 flex font-sans text-slate-800">
-      {/* === SIDEBAR === */}
       <Sidebar
         currentView={currentView}
         setCurrentView={setCurrentView}
         onLogout={handleLogout}
       />
 
-      {/* === MAIN CONTENT === */}
       <main className="flex-1 ml-20 lg:ml-72 p-8 lg:p-12 transition-all">
-        {/* === VIEW: DASHBOARD (OVERVIEW) === */}
         {currentView === "dashboard" && (
           <DashboardOverview
             user={user}
             userData={userData}
             fetchUserData={fetchUserData}
+            setView={setCurrentView} // Pass setter to allow navigation from Banner
           />
         )}
 
-        {/* === VIEW: PROFILE FORM === */}
         {currentView === "profile" && (
           <div className="bg-white p-8 lg:p-12 rounded-3xl shadow-lg border border-slate-100 max-w-4xl mx-auto animate-fade-in">
             <PersonalDetailsForm
@@ -1724,7 +1721,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* === VIEW: ACADEMIC FORM === */}
         {currentView === "academic" && (
           <div className="bg-white p-8 lg:p-12 rounded-3xl shadow-lg border border-slate-100 max-w-4xl mx-auto animate-fade-in">
             <AcademicDetailsForm

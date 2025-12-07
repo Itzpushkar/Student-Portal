@@ -1,13 +1,11 @@
 const express = require("express");
 const router = express.Router();
-// FIX: Path is now relative to src/routes, so go up one level (..) to src/middleware
 const {
   protect,
   superAdminOnly,
   adminAccess,
 } = require("../middleware/authMiddleware");
 
-// Import Controllers (up one level to src/controllers)
 const authController = require("../controllers/authController");
 const adminController = require("../controllers/adminController");
 
@@ -19,12 +17,15 @@ router.post("/login", authController.adminLogin);
 router.post("/verify-otp", authController.verifyAdminOTP);
 router.post("/logout", authController.logout);
 
+// NEW ROUTE: Check if Super Admin exists (Public)
+router.get("/check-super-admin", adminController.checkSuperAdmin);
+
 // ==============================
 // 🔒 PROTECTED ROUTES
 // ==============================
-router.use(protect); // All routes below require token
+router.use(protect);
 
-// --- SHARED ADMIN ACCESS (Super + Sub) ---
+// --- SHARED ADMIN ACCESS ---
 router.get("/all-students", adminAccess, adminController.getAllStudents);
 router.post("/suspend-user", adminAccess, adminController.suspendUser);
 router.post("/toggle-ban", adminAccess, adminController.toggleBanUser);

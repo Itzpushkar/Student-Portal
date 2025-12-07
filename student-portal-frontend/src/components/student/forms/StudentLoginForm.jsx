@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/useAuth";
 
-export default function StudentLoginForm({ onClose }) {
+export default function StudentLoginForm({ onClose, onSwitchToSignup }) {
   const navigate = useNavigate();
   const { loginUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -90,6 +90,16 @@ export default function StudentLoginForm({ onClose }) {
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        <p className="text-center text-sm text-slate-500">
+          Don't have an account?{" "}
+          <span
+            onClick={onSwitchToSignup}
+            className="text-green-600 font-bold cursor-pointer hover:underline"
+          >
+            Sign Up
+          </span>
+        </p>
       </form>
     </div>
   );

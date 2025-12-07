@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthProvider";
 
@@ -26,15 +26,37 @@ export default function AdminSignupPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
+  const [superAdminExists, setSuperAdminExists] = useState(false); // New State
 
   const [form, setForm] = useState({
     username: "",
     email: "",
     password: "",
-    role: "super-admin",
+    role: "super-admin", // Default, will change if superAdminExists
     branch: "",
     post: "",
   });
+
+  // Check Super Admin Status on Load
+  useEffect(() => {
+    const checkSuper = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/admin/check-super-admin"
+        );
+        const data = await res.json();
+        setSuperAdminExists(data.exists);
+
+        if (data.exists) {
+          // If Super Admin exists, force Sub-Admin role logic
+          setForm((prev) => ({ ...prev, role: "sub-admin" }));
+        }
+      } catch (e) {
+        console.error("Error checking super admin", e);
+      }
+    };
+    checkSuper();
+  }, []);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -80,9 +102,8 @@ export default function AdminSignupPage() {
         if (data.requireApproval) {
           setStep(3); // Wait for approval UI
         } else {
-          // Auto-approved (Super Admin)
+          // Auto-approved (Only for first Super Admin)
           loginUser({ ...data.user, role: "super-admin" });
-          // FIX: Redirect to /super-admin instead of /admin
           navigate("/super-admin");
         }
       } else {
@@ -149,35 +170,39 @@ export default function AdminSignupPage() {
               required
             />
 
-            <div className="flex items-center justify-center gap-6 py-2">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input
-                  type="radio"
-                  name="role"
-                  value="super-admin"
-                  checked={form.role === "super-admin"}
-                  onChange={() => handleRoleChange("super-admin")}
-                  className="accent-blue-600"
-                />
-                <span className="text-sm font-medium text-slate-700">
-                  General (Super)
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input
-                  type="radio"
-                  name="role"
-                  value="sub-admin"
-                  checked={form.role === "sub-admin"}
-                  onChange={() => handleRoleChange("sub-admin")}
-                  className="accent-blue-600"
-                />
-                <span className="text-sm font-medium text-slate-700">
-                  Branch (Sub)
-                </span>
-              </label>
-            </div>
+            {/* HIDE RADIO IF SUPER ADMIN EXISTS */}
+            {!superAdminExists && (
+              <div className="flex items-center justify-center gap-6 py-2">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="super-admin"
+                    checked={form.role === "super-admin"}
+                    onChange={() => handleRoleChange("super-admin")}
+                    className="accent-blue-600"
+                  />
+                  <span className="text-sm font-medium text-slate-700">
+                    General (Super)
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="sub-admin"
+                    checked={form.role === "sub-admin"}
+                    onChange={() => handleRoleChange("sub-admin")}
+                    className="accent-blue-600"
+                  />
+                  <span className="text-sm font-medium text-slate-700">
+                    Branch (Sub)
+                  </span>
+                </label>
+              </div>
+            )}
 
+            {/* SHOW IF SUB-ADMIN (Either forced or selected) */}
             {form.role === "sub-admin" && (
               <div className="space-y-4 animate-slideDown">
                 <select
