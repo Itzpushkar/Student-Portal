@@ -1,12 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const { protect, adminAccess } = require("../middleware/authMiddleware");
-
-// Import Controllers
 const authController = require("../controllers/authController");
 const userController = require("../controllers/userController");
 
-// PUBLIC ROUTES
+// PUBLIC
 router.post("/signup", authController.signup);
 router.post("/login", authController.login);
 router.post("/verify-otp", authController.verifyOTP);
@@ -15,7 +13,7 @@ router.post("/forgot-password", authController.forgotPassword);
 router.post("/verify-reset-otp", authController.verifyResetOTP);
 router.post("/reset-password", authController.resetPassword);
 
-// PROTECTED ROUTES
+// PROTECTED
 router.use(protect);
 
 router.get("/dashboard", userController.getDashboard);
@@ -32,9 +30,12 @@ router.post(
   userController.submitSemester
 );
 router.post("/request-promotion", userController.requestPromotion);
-
-// NEW: Change Password Route
 router.post("/change-password", authController.changePassword);
+
+// NEW ROUTES
+router.get("/notifications", userController.getNotifications);
+router.put("/notifications/:id/read", userController.markNotificationRead);
+router.get("/broadcasts", userController.getBroadcasts);
 
 // ADMIN ACTIONS
 router.post(

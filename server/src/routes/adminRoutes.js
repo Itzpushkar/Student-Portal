@@ -28,6 +28,7 @@ router.use(protect);
 // --- SHARED ADMIN ACCESS ---
 router.get("/all-students", adminAccess, adminController.getAllStudents);
 router.post("/suspend-user", adminAccess, adminController.suspendUser);
+router.post("/unsuspend-user", adminAccess, adminController.unsuspendUser); // NEW ROUTE ADDED HERE
 router.post("/toggle-ban", adminAccess, adminController.toggleBanUser);
 
 // --- SUPER ADMIN ONLY ---

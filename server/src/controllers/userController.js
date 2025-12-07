@@ -1,5 +1,7 @@
 const User = require("../models/User");
 const PromotionRequest = require("../models/PromotionRequest");
+const Notification = require("../models/Notification");
+const Broadcast = require("../models/Broadcast");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
@@ -26,7 +28,7 @@ exports.handleUploadError = (err, req, res, next) => {
   next();
 };
 
-// --- HELPER: PAGE-PER-SEMESTER PDF ---
+// --- HELPER: PDF EMAIL ---
 const sendSemesterUpdateEmail = async (user) => {
   try {
     const doc = new PDFDocument({ margin: 50 });
@@ -35,11 +37,9 @@ const sendSemesterUpdateEmail = async (user) => {
 
     doc.pipe(writeStream);
 
-    // --- PAGE 1: PERSONAL DETAILS ---
-
     // Header
     doc
-      .fontSize(24)
+      .fontSize(20)
       .font("Helvetica-Bold")
       .text("Student Academic Report", { align: "center" });
     doc.moveDown(2);
@@ -50,108 +50,63 @@ const sendSemesterUpdateEmail = async (user) => {
       fs.existsSync(user.personalDetails.profilePhoto)
     ) {
       try {
-        // Centered Photo
-        const x = (doc.page.width - 150) / 2;
-        doc.image(user.personalDetails.profilePhoto, x, 120, {
-          width: 150,
-          height: 150,
-          fit: [150, 150],
-          align: "center",
-        });
-        doc.moveDown(10);
-      } catch (imgErr) {
-        console.error("Image Error", imgErr);
+        doc.image(
+          user.personalDetails.profilePhoto,
+          (doc.page.width - 100) / 2,
+          100,
+          { width: 100, height: 100, fit: [100, 100] }
+        );
+        doc.moveDown(8);
+      } catch (e) {
         doc.moveDown(4);
       }
     } else {
-      doc.moveDown(8);
+      doc.moveDown(4);
     }
 
-    // Personal Info Table-ish layout
-    const startX = 100;
-    let currentY = doc.y + 20;
+    // Info
+    doc.fontSize(12).font("Helvetica");
+    const info = [
+      `Name: ${user.personalDetails?.fullName}`,
+      `Enrollment No: ${user.enrollmentNo}`,
+      `Branch: ${user.personalDetails?.branch}`,
+      `Email: ${user.email}`,
+      `Current Semester: ${user.currentSemester}`,
+    ];
+    info.forEach((line) => doc.text(line, { align: "center" }));
+    doc.moveDown(2);
 
-    // Calculations
-    const totalBacklogs = user.academicDetails.reduce(
-      (sum, sem) => sum + (parseInt(sem.backlogs) || 0),
-      0
-    );
-    const totalGpa = user.academicDetails.reduce(
-      (sum, sem) => sum + (parseFloat(sem.gpa) || 0),
-      0
-    );
-    const cgpa = user.academicDetails.length
-      ? (totalGpa / user.academicDetails.length).toFixed(2)
-      : "0.00";
+    // Academic History
+    doc
+      .fontSize(16)
+      .font("Helvetica-Bold")
+      .text("Academic Details", { underline: true });
+    doc.moveDown();
 
-    const addField = (label, value) => {
-      doc.fontSize(14).font("Helvetica-Bold").text(label, startX, currentY);
-      doc.font("Helvetica").text(value, startX + 150, currentY);
-      currentY += 30;
-    };
+    user.academicDetails
+      .sort((a, b) => a.semester - b.semester)
+      .forEach((sem) => {
+        if (doc.y > 650) doc.addPage();
+        doc
+          .fontSize(14)
+          .font("Helvetica-Bold")
+          .text(`Semester ${sem.semester}`);
+        doc
+          .fontSize(12)
+          .font("Helvetica")
+          .text(`GPA: ${sem.gpa} | Backlogs: ${sem.backlogs}`);
 
-    addField("Name:", user.personalDetails?.fullName);
-    addField("Enrollment No:", user.enrollmentNo);
-    addField("Email:", user.email);
-    addField("Branch:", user.personalDetails?.branch);
-    addField("Current Semester:", user.currentSemester);
-    currentY += 10; // Spacing
-    doc.font("Helvetica-Bold").fillColor("blue");
-    addField("Current CGPA:", cgpa);
-    doc.fillColor("red");
-    addField("Total Backlogs:", totalBacklogs);
-    doc.fillColor("black"); // Reset
-
-    // --- PAGE 2+: SEMESTER DETAILS ---
-    // Sort semesters to ensure order 1, 2, 3...
-    const sortedSemesters = user.academicDetails.sort(
-      (a, b) => a.semester - b.semester
-    );
-
-    sortedSemesters.forEach((sem) => {
-      doc.addPage(); // Force new page for every semester
-
-      // Semester Header
-      doc
-        .fontSize(22)
-        .font("Helvetica-Bold")
-        .text(`Semester ${sem.semester} Details`, { align: "center" });
-      doc.moveDown(2);
-
-      // Stats
-      doc.fontSize(16).font("Helvetica");
-      doc.text(`GPA Obtained:  ${sem.gpa}`);
-      doc.moveDown(0.5);
-      doc.text(`Backlogs:      ${sem.backlogs}`);
-      if (sem.remarks) {
-        doc.moveDown(0.5);
-        doc.text(`Remarks:       ${sem.remarks}`);
-      }
-
-      doc.moveDown(2);
-
-      // Marksheet Image
-      if (sem.marksheetImages && sem.marksheetImages.length > 0) {
-        const imgPath = sem.marksheetImages[0];
-        if (fs.existsSync(imgPath)) {
+        if (sem.marksheetImages?.[0] && fs.existsSync(sem.marksheetImages[0])) {
+          doc.moveDown(0.5);
           try {
-            doc
-              .fontSize(14)
-              .font("Helvetica-Bold")
-              .text("Result Marksheet:", { underline: true });
-            doc.moveDown();
-            // Fit image to page width minus margins
-            doc.image(imgPath, { width: 500, align: "center" });
-          } catch (err) {
-            doc.text("[Image File Corrupt or Unsupported]");
+            doc.image(sem.marksheetImages[0], { width: 400 });
+          } catch (e) {
+            doc.text("[Image Error]");
           }
-        } else {
-          doc.text("[Marksheet Image Not Found on Server]");
+          doc.moveDown();
         }
-      } else {
-        doc.text("[No Marksheet Uploaded]");
-      }
-    });
+        doc.moveDown(1);
+      });
 
     doc.end();
 
@@ -165,36 +120,30 @@ const sendSemesterUpdateEmail = async (user) => {
         from: process.env.EMAIL_USER,
         to: user.email,
         subject: "Your Updated Academic Report",
-        text: `Dear ${user.personalDetails?.fullName},\n\nPlease find attached your comprehensive academic report including your latest results.\n\nRegards,\nStudent Portal Admin`,
-        attachments: [
-          { filename: `Report_${user.enrollmentNo}.pdf`, path: pdfPath },
-        ],
+        text: `Dear Student,\n\nPlease find attached your updated academic report.\n\nRegards,\nAdmin`,
+        attachments: [{ filename: `Report.pdf`, path: pdfPath }],
       });
-
       setTimeout(() => {
         if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
       }, 5000);
     });
   } catch (error) {
-    console.error("PDF Generation Error:", error);
+    console.error("PDF Error:", error);
   }
 };
 
-// --- DASHBOARD & PROFILE ---
+// --- DATA FETCHING ---
 exports.getDashboard = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
     if (!user) return res.status(404).json({ msg: "User not found" });
-
-    if (user.accountStatus?.status === "Banned") {
+    if (user.accountStatus?.status === "Banned")
       return res.status(403).json({ msg: "ACCOUNT_BANNED" });
-    }
 
     const pendingRequest = await PromotionRequest.findOne({
       userId: user._id,
       status: "pending",
     });
-
     res.json({
       ...user.toObject(),
       promotionStatus: pendingRequest ? "pending" : "none",
@@ -204,45 +153,87 @@ exports.getDashboard = async (req, res) => {
   }
 };
 
+exports.getNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find({
+      userId: req.user._id,
+    }).sort({ createdAt: -1 });
+    res.json(notifications);
+  } catch (err) {
+    res.status(500).json({ msg: "Server Error" });
+  }
+};
+
+exports.markNotificationRead = async (req, res) => {
+  try {
+    await Notification.findByIdAndUpdate(req.params.id, { isRead: true });
+    res.json({ msg: "Read" });
+  } catch (err) {
+    res.status(500).json({ msg: "Error" });
+  }
+};
+
+exports.getBroadcasts = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const branch = user.personalDetails?.branch || "General";
+    const sem = user.currentSemester.toString();
+
+    const broadcasts = await Broadcast.find({
+      $or: [
+        { "targetAudience.branch": "All" },
+        {
+          "targetAudience.branch": branch,
+          $or: [
+            { "targetAudience.semester": "All" },
+            { "targetAudience.semester": sem },
+          ],
+        },
+      ],
+    }).sort({ createdAt: -1 });
+
+    res.json(broadcasts);
+  } catch (err) {
+    res.status(500).json({ msg: "Server Error" });
+  }
+};
+
+// --- UPDATES ---
 exports.savePersonalDetails = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-
-    // Update Email if provided
     if (req.body.email) user.email = req.body.email;
 
-    if (req.body.fullName) user.personalDetails.fullName = req.body.fullName;
-    if (req.body.dob) user.personalDetails.dob = req.body.dob;
-    if (req.body.contact) user.personalDetails.contact = req.body.contact;
-    if (req.body.address) user.personalDetails.address = req.body.address;
-    if (req.body.course) user.personalDetails.course = req.body.course;
-    if (req.body.branch) user.personalDetails.branch = req.body.branch;
-    if (req.body.tenthPercentage)
-      user.personalDetails.tenthPercentage = req.body.tenthPercentage;
+    // Update fields
+    [
+      "fullName",
+      "dob",
+      "contact",
+      "address",
+      "course",
+      "branch",
+      "tenthPercentage",
+    ].forEach((field) => {
+      if (req.body[field]) user.personalDetails[field] = req.body[field];
+    });
 
     if (req.file) user.personalDetails.profilePhoto = req.file.path;
-
     user.isPersonalDetailsCompleted = true;
 
     await user.save();
     res.json({ msg: "Profile Updated", user });
   } catch (err) {
-    console.error("Save Profile Error:", err);
-    res.status(500).json({ msg: "Error updating profile: " + err.message });
+    res.status(500).json({ msg: "Error updating profile" });
   }
 };
 
-// --- ACADEMICS ---
 exports.submitSemester = async (req, res) => {
   try {
     const { semester, gpa, backlogs, remarks } = req.body;
     const user = await User.findById(req.user._id);
 
-    if (!user.isPersonalDetailsCompleted) {
-      return res
-        .status(400)
-        .json({ msg: "Please fill personal details first." });
-    }
+    if (!user.isPersonalDetailsCompleted)
+      return res.status(400).json({ msg: "Fill personal details first." });
 
     const newDetails = {
       semester: parseInt(semester),
@@ -260,12 +251,11 @@ exports.submitSemester = async (req, res) => {
     user.isAcademicDetailsCompleted = true;
     await user.save();
 
-    sendSemesterUpdateEmail(user);
+    sendSemesterUpdateEmail(user); // Send Email
 
     res.json({ msg: "Saved & Email Sent" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Error saving academic details" });
+    res.status(500).json({ msg: "Error saving details" });
   }
 };
 
@@ -276,34 +266,20 @@ exports.requestPromotion = async (req, res) => {
       userId: user._id,
       status: "pending",
     });
-    if (existing)
-      return res.status(400).json({ msg: "Request already pending" });
-
+    if (existing) return res.status(400).json({ msg: "Request pending" });
     await new PromotionRequest({
       userId: user._id,
       enrollmentNo: user.enrollmentNo,
       currentSemester: user.currentSemester,
       requestedSemester: user.currentSemester + 1,
     }).save();
-
-    res.json({ msg: "Promotion Requested" });
-  } catch (err) {
+    res.json({ msg: "Requested" });
+  } catch (e) {
     res.status(500).json({ msg: "Error" });
   }
 };
 
-// --- ADMIN FEATURES ---
-exports.getAllPendingPromotions = async (req, res) => {
-  try {
-    const requests = await PromotionRequest.find({
-      status: "pending",
-    }).populate("userId", "personalDetails.fullName username");
-    res.json(requests);
-  } catch (err) {
-    res.status(500).json({ msg: "Error" });
-  }
-};
-
+// --- ADMIN ---
 exports.adminApprovePromotion = async (req, res) => {
   try {
     const { requestId, decision } = req.body;
@@ -317,6 +293,21 @@ exports.adminApprovePromotion = async (req, res) => {
       const user = await User.findById(request.userId);
       user.currentSemester = request.requestedSemester;
       await user.save();
+
+      // Notify Student
+      await new Notification({
+        userId: user._id,
+        title: "Promotion Approved",
+        message: `Promoted to Sem ${user.currentSemester}`,
+        type: "success",
+      }).save();
+    } else {
+      await new Notification({
+        userId: request.userId,
+        title: "Promotion Rejected",
+        message: "Contact Admin.",
+        type: "error",
+      }).save();
     }
     res.json({ msg: "Success" });
   } catch (err) {
@@ -324,7 +315,15 @@ exports.adminApprovePromotion = async (req, res) => {
   }
 };
 
+exports.getAllPendingPromotions = async (req, res) => {
+  const list = await PromotionRequest.find({ status: "pending" }).populate(
+    "userId",
+    "personalDetails.fullName username"
+  );
+  res.json(list);
+};
+
 exports.getAllStudents = async (req, res) => {
-  const users = await User.find({ role: "student" }).select("-password");
+  const users = await User.find({ role: "student" });
   res.json(users);
 };

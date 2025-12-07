@@ -3,11 +3,13 @@ import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Icons } from "../../components/admin/shared/SharedComponents";
 
+// --- MODULAR IMPORTS ---
 import AdminSidebar from "../../components/admin/shared/AdminSidebar";
 import DashboardFilters from "../../components/admin/dashboard/DashboardFilters";
 import UserDetailModal from "../../components/admin/modals/UserDetailModal";
 import SuspendModal from "../../components/admin/modals/SuspendModal";
 
+// --- TABS IMPORTS ---
 import StudentsTab from "../../components/admin/tabs/StudentsTab";
 import AdminsTab from "../../components/admin/tabs/AdminsTab";
 import PassoutTab from "../../components/admin/tabs/PassoutTab";
@@ -20,6 +22,7 @@ export default function SuperAdminDashboard() {
   const { logoutUser } = useAuth();
   const navigate = useNavigate();
 
+  // --- STATE ---
   const [activeTab, setActiveTab] = useState("students");
   const [subTab, setSubTab] = useState("personal");
 
@@ -33,6 +36,7 @@ export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalMode, setModalMode] = useState("read");
+
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [suspendForm, setSuspendForm] = useState({
     duration: "1 Day",
@@ -70,8 +74,17 @@ export default function SuperAdminDashboard() {
       ["students", "passout", "banned", "suspended"].includes(activeTab) &&
       !branch
     ) {
-      setData([]);
-      return;
+      // Logic Exception: If Banned/Suspended and NO branch -> Show default list (Only banned/suspended users)
+      // If we return here, we must ensure we fetch the "All" list first to filter locally, OR use a specific backend endpoint.
+      // Since our backend endpoint 'all-students' returns everyone if no filters are passed, we should proceed
+      // but only render the filtered subset in the UI logic below.
+
+      // However, to keep it clean: We fetch all and filter client side for Banned/Suspended default views.
+      // For 'students' tab, we strictly require a branch to avoid loading thousands of users.
+      if (activeTab === "students") {
+        setData([]);
+        return;
+      }
     }
 
     setLoading(true);
@@ -85,6 +98,9 @@ export default function SuperAdminDashboard() {
       if (activeTab === "requests") endpoint = "pending-admins";
       if (activeTab === "activities") endpoint = "activities";
       if (activeTab === "passout") endpoint = `passout-students${query}`;
+
+      // For Student/Banned/Suspended tabs, we use the all-students endpoint
+      // If branch is empty (Default Banned/Suspended view), query will be empty string, returning all students.
       if (["students", "banned", "suspended"].includes(activeTab))
         endpoint = `all-students${query}`;
 
@@ -94,13 +110,26 @@ export default function SuperAdminDashboard() {
       if (res.ok) {
         let result = await res.json();
 
-        // Filtering
-        if (activeTab === "banned" && !branch)
-          result = result.filter((u) => u.accountStatus?.status === "Banned");
-        if (activeTab === "suspended" && !branch)
-          result = result.filter(
-            (u) => u.accountStatus?.status === "Suspended"
-          );
+        // --- FILTERING LOGIC ---
+        if (activeTab === "banned") {
+          if (!branch) {
+            // Default View: Only show existing Banned students
+            result = result.filter((u) => u.accountStatus?.status === "Banned");
+          }
+          // Filtered View (Branch Selected): Show ALL students (so we can ban active ones)
+          // No additional filter needed here as backend already filtered by branch
+        }
+
+        if (activeTab === "suspended") {
+          if (!branch) {
+            // Default View: Only show existing Suspended students
+            result = result.filter(
+              (u) => u.accountStatus?.status === "Suspended"
+            );
+          }
+          // Filtered View: Show ALL
+        }
+
         if (activeTab === "students")
           result = result.filter((u) => u.accountStatus?.status === "Active");
         if (activeTab === "admins" && branch)
@@ -138,12 +167,19 @@ export default function SuperAdminDashboard() {
   };
 
   const toggleBan = (userId) => handleAction("toggle-ban", { userId });
-  const onUnsuspend = (userId) =>
-    handleAction("suspend-user", { userId, duration: "Until I unsuspend" });
-  const initiateSuspend = (userId) => {
-    setUserToSuspend(userId);
-    setSuspendForm({ duration: "1 Day", reason: "" });
-    setShowSuspendModal(true);
+
+  // FIX: Updated to call 'unsuspend-user' endpoint correctly
+  const onUnsuspend = (userId) => handleAction("unsuspend-user", { userId });
+
+  const initiateSuspend = (item) => {
+    // If already suspended, clicking the button triggers unsuspend
+    if (item.accountStatus?.status === "Suspended") {
+      onUnsuspend(item._id);
+    } else {
+      setUserToSuspend(item._id);
+      setSuspendForm({ duration: "1 Day", reason: "" });
+      setShowSuspendModal(true);
+    }
   };
 
   const handleUpdateDetails = () => {
@@ -151,6 +187,7 @@ export default function SuperAdminDashboard() {
     setModalMode("read");
     fetchData();
   };
+
   const handleLogout = () => {
     logoutUser();
     navigate("/");
@@ -170,15 +207,31 @@ export default function SuperAdminDashboard() {
           Loading Records...
         </div>
       );
-    if (data.length === 0)
+
+    if (data.length === 0) {
+      const isBannedOrSuspended = ["banned", "suspended"].includes(activeTab);
+
+      // Custom message if we are in "Default View" (No Branch Selected) and list is empty
+      if (isBannedOrSuspended && !branch) {
+        return (
+          <div className="text-center py-20 text-slate-400">
+            No {activeTab} students found across the system.
+          </div>
+        );
+      }
+
+      if (activeTab === "students" && !branch)
+        return (
+          <div className="text-center py-20 text-slate-400">
+            Please select a Branch.
+          </div>
+        );
       return (
         <div className="text-center py-20 text-slate-400">
-          {!branch &&
-          ["students", "passout", "banned", "suspended"].includes(activeTab)
-            ? "Please select a Branch."
-            : "No records found."}
+          No records found.
         </div>
       );
+    }
 
     switch (activeTab) {
       case "students":
@@ -216,6 +269,7 @@ export default function SuperAdminDashboard() {
         return <ActivitiesTab data={data} />;
       case "banned":
         return <BannedTab data={data} onToggleBan={toggleBan} />;
+      // FIX: Ensure onUnsuspend and onSuspend are passed correctly
       case "suspended":
         return (
           <SuspendedTab
@@ -273,6 +327,7 @@ export default function SuperAdminDashboard() {
         <h2 className="text-2xl font-bold text-slate-800 mb-6 capitalize">
           {activeTab.replace("-", " ")}
         </h2>
+
         <DashboardFilters
           activeTab={activeTab}
           branch={branch}
@@ -287,8 +342,10 @@ export default function SuperAdminDashboard() {
           setActivityDate={setActivityDate}
           tabs={tabs}
         />
+
         {renderTabContent()}
       </main>
+
       <UserDetailModal
         user={selectedUser}
         onClose={() => setSelectedUser(null)}
@@ -296,6 +353,7 @@ export default function SuperAdminDashboard() {
         modalMode={modalMode}
         setModalMode={setModalMode}
       />
+
       <SuspendModal
         isOpen={showSuspendModal}
         onClose={() => setShowSuspendModal(false)}
@@ -309,6 +367,7 @@ export default function SuperAdminDashboard() {
         form={suspendForm}
         setForm={setSuspendForm}
       />
+
       <style>{`.filter-select, .filter-input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; background: white; color: #475569; font-weight: 500; transition: all 0.2s; } .filter-select:focus, .filter-input:focus { border-color: #6366f1; ring: 2px solid #6366f1; } .custom-scrollbar::-webkit-scrollbar { width: 6px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; } .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
   );

@@ -66,7 +66,6 @@ exports.getPassoutStudents = async (req, res) => {
 
 exports.approveAdmin = async (req, res) => {
   try {
-    // 1. Update the Admin status
     const admin = await Admin.findByIdAndUpdate(
       req.body.adminId,
       { isApproved: true },
@@ -74,21 +73,17 @@ exports.approveAdmin = async (req, res) => {
     );
 
     if (admin) {
-      // 2. Send Approval Email
       const subject = "Admin Request Approved - Student Portal";
       const text = `Congratulations ${admin.username},\n\nYour request to become a Sub-Admin has been approved by the Super Admin.\n\nYou can now login to your dashboard using your credentials.\n\nRegards,\nAdmin Team`;
-
       try {
         await sendEmail(admin.email, subject, text);
       } catch (emailErr) {
         console.error("Failed to send approval email:", emailErr);
-        // We don't block the response if email fails, but log it
       }
     }
 
     res.json({ msg: "Admin Approved & Email Sent" });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Error approving admin" });
   }
 };
@@ -101,13 +96,10 @@ exports.rejectAdminRequest = async (req, res) => {
     const userEmail = admin.email;
     const userName = admin.username;
 
-    // 1. Delete the Admin record
     await Admin.findByIdAndDelete(req.body.adminId);
 
-    // 2. Send Rejection Email
     const subject = "Admin Request Rejected - Student Portal";
     const text = `Hello ${userName},\n\nYour request to become a Sub-Admin has been rejected by the Super Admin.\n\nPlease contact the administration for more details.\n\nRegards,\nAdmin Team`;
-
     try {
       await sendEmail(userEmail, subject, text);
     } catch (emailErr) {
@@ -116,7 +108,6 @@ exports.rejectAdminRequest = async (req, res) => {
 
     res.json({ msg: "Request Rejected & Email Sent" });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Error rejecting request" });
   }
 };
@@ -160,6 +151,28 @@ exports.suspendUser = async (req, res) => {
     res.json({ msg: "User Suspended" });
   } catch (err) {
     res.status(500).json({ msg: "Error" });
+  }
+};
+
+// --- NEW FUNCTION: UNSUSPEND USER ---
+exports.unsuspendUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.body.userId);
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    // Reset status to Active
+    user.accountStatus = {
+      status: "Active",
+      suspendedUntil: null,
+      suspendReason: null,
+      bannedBy: null,
+    };
+
+    await user.save();
+    res.json({ msg: "User Unsuspended Successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Error unsuspending user" });
   }
 };
 
