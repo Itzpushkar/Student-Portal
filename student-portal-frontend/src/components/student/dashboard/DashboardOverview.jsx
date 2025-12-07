@@ -10,7 +10,11 @@ import {
   Lock,
   LogOut,
   Upload,
+  Mail,
+  Hash,
+  BookOpen,
 } from "lucide-react";
+import WarningModal from "../../common/WarningModal"; // Import Modal
 
 export default function DashboardOverview({
   user,
@@ -18,13 +22,12 @@ export default function DashboardOverview({
   fetchUserData,
   setView,
 }) {
-  // --- STATE ---
   const [quote, setQuote] = useState(
     localStorage.getItem(`quote_${user._id}`) || "Knowledge is power."
   );
   const [isEditingQuote, setIsEditingQuote] = useState(false);
 
-  // Semester Modal State
+  // Modal State
   const [activeSemester, setActiveSemester] = useState(null);
   const [semForm, setSemForm] = useState({
     gpa: "",
@@ -35,7 +38,9 @@ export default function DashboardOverview({
   const [existingImage, setExistingImage] = useState(null);
   const [isHoveringSem, setIsHoveringSem] = useState(null);
 
-  // --- CALCULATIONS ---
+  // Warning State
+  const [warning, setWarning] = useState({ show: false, title: "", msg: "" });
+
   const stats = useMemo(() => {
     if (!userData?.academicDetails?.length)
       return { cgpa: "0.00", totalBacklogs: 0 };
@@ -53,7 +58,6 @@ export default function DashboardOverview({
     return { cgpa, totalBacklogs };
   }, [userData]);
 
-  // --- HANDLERS ---
   const saveQuote = () => {
     localStorage.setItem(`quote_${user._id}`, quote);
     setIsEditingQuote(false);
@@ -115,7 +119,11 @@ export default function DashboardOverview({
         alert("Promotion Request Sent to Sub-Admin");
         fetchUserData();
       } else {
-        alert("Request Already Pending or Invalid");
+        setWarning({
+          show: true,
+          title: "Request Pending",
+          msg: "You already have a pending promotion request.",
+        });
       }
     } catch (e) {
       alert("Error sending request");
@@ -123,9 +131,23 @@ export default function DashboardOverview({
   };
 
   const handleSemesterClick = (sem, isUnlocked) => {
+    // 1. Check Personal Details
     if (!userData.isPersonalDetailsCompleted) {
-      alert("Please fill your Personal Details first!");
-      if (setView) setView("profile");
+      setWarning({
+        show: true,
+        title: "Incomplete Profile",
+        msg: "Please fill out your Personal Details completely before accessing academic records.",
+      });
+      return;
+    }
+
+    // 2. Check Pending Promotion
+    if (userData.promotionStatus === "pending") {
+      setWarning({
+        show: true,
+        title: "Action Locked",
+        msg: "Your promotion request is currently pending approval. You cannot edit details at this time.",
+      });
       return;
     }
 
@@ -144,13 +166,11 @@ export default function DashboardOverview({
     }
   };
 
-  // --- RENDER ---
   return (
     <div className="space-y-12 animate-fade-in">
-      {/* 1. CUSTOM BANNER LAYOUT */}
-      <div className="relative mt-8">
-        {/* Quote Section (Above Banner, Left Aligned) */}
-        <div className="absolute -top-8 left-0 z-10">
+      {/* 1. HERO BANNER */}
+      <div className="relative mt-10">
+        <div className="absolute -top-8 left-2 z-10">
           {isEditingQuote ? (
             <div className="flex gap-2 items-center bg-white p-1 rounded-lg shadow-sm border border-slate-200">
               <input
@@ -181,11 +201,8 @@ export default function DashboardOverview({
           )}
         </div>
 
-        {/* Main Banner Card */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden h-48 flex items-center">
-          {/* Left Content Wrapper */}
-          <div className="flex items-center gap-6 z-10 w-full">
-            {/* 1. Circle Profile Photo */}
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden flex items-center min-h-[180px]">
+          <div className="flex flex-col md:flex-row items-center gap-8 z-10 w-full">
             <div className="relative group flex-shrink-0">
               <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white/30 shadow-lg bg-white/10 flex items-center justify-center">
                 {userData?.personalDetails?.profilePhoto ? (
@@ -198,7 +215,6 @@ export default function DashboardOverview({
                   <User size={48} className="text-white/50" />
                 )}
               </div>
-              {/* Hover Upload */}
               <label className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                 <Edit2 className="text-white drop-shadow-md" size={24} />
                 <input
@@ -210,15 +226,11 @@ export default function DashboardOverview({
               </label>
             </div>
 
-            {/* 2. Middle Section: Name & Details */}
-            <div className="flex-1 flex flex-col justify-center">
-              {/* Username */}
-              <h1 className="text-4xl font-extrabold mb-3 tracking-tight">
+            <div className="flex-1 flex flex-col justify-center text-center md:text-left">
+              <h1 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight">
                 {userData?.personalDetails?.fullName || user.username}
               </h1>
-
-              {/* Details Row (Separated by |) */}
-              <div className="flex items-center gap-3 text-indigo-100 font-medium text-sm md:text-base">
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-3 text-indigo-100 font-medium text-sm md:text-base">
                 <div
                   className="flex items-center gap-2 group cursor-pointer hover:text-white transition-colors"
                   onClick={() => setView("profile")}
@@ -231,7 +243,9 @@ export default function DashboardOverview({
                     className="opacity-0 group-hover:opacity-100"
                   />
                 </div>
-                <span className="opacity-50 text-lg font-light">|</span>
+                <span className="opacity-50 text-lg font-light hidden md:inline">
+                  |
+                </span>
                 <div
                   className="flex items-center gap-2 group cursor-pointer hover:text-white transition-colors"
                   onClick={() => setView("profile")}
@@ -242,12 +256,16 @@ export default function DashboardOverview({
                     className="opacity-0 group-hover:opacity-100"
                   />
                 </div>
-                <span className="opacity-50 text-lg font-light">|</span>
+                <span className="opacity-50 text-lg font-light hidden md:inline">
+                  |
+                </span>
                 <div
                   className="flex items-center gap-2 group cursor-pointer hover:text-white transition-colors"
                   onClick={() => setView("profile")}
                 >
-                  <span className="truncate max-w-[200px]">{user.email}</span>
+                  <span className="truncate max-w-[200px]">
+                    {userData?.email || user.email}
+                  </span>
                   <Edit2
                     size={12}
                     className="opacity-0 group-hover:opacity-100"
@@ -256,15 +274,14 @@ export default function DashboardOverview({
               </div>
             </div>
 
-            {/* 3. Right Section: Stats Boxes */}
             <div className="flex gap-4 ml-auto">
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-4 rounded-2xl text-center min-w-[100px] shadow-lg">
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl text-center min-w-[100px] shadow-lg">
                 <p className="text-xs font-bold text-indigo-200 uppercase tracking-wider mb-1">
                   CGPA
                 </p>
                 <p className="text-2xl font-black text-white">{stats.cgpa}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-4 rounded-2xl text-center min-w-[100px] shadow-lg">
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl text-center min-w-[100px] shadow-lg">
                 <p className="text-xs font-bold text-red-200 uppercase tracking-wider mb-1">
                   Backlogs
                 </p>
@@ -274,8 +291,6 @@ export default function DashboardOverview({
               </div>
             </div>
           </div>
-
-          {/* Background Decor */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full translate-x-1/3 -translate-y-1/2 blur-3xl pointer-events-none"></div>
         </div>
       </div>
@@ -369,7 +384,6 @@ export default function DashboardOverview({
                       )}
                     </div>
                   </div>
-
                   {isCompleted ? (
                     <div className="flex gap-4">
                       <div>
@@ -402,11 +416,10 @@ export default function DashboardOverview({
                   )}
                 </button>
 
-                {/* HOVER OVERLAY: REQUEST PROMOTION */}
                 {canRequestPromotion && isHoveringSem === sem && (
                   <div className="absolute inset-0 bg-indigo-900/95 rounded-2xl flex flex-col items-center justify-center text-white backdrop-blur-sm animate-fade-in z-20 cursor-default">
-                    <p className="font-bold mb-3 text-center px-4">
-                      Current Semester Completed!
+                    <p className="font-bold mb-3 text-center px-4 text-sm">
+                      Previous Semester Completed!
                     </p>
                     <button
                       onClick={(e) => {
@@ -420,7 +433,6 @@ export default function DashboardOverview({
                   </div>
                 )}
 
-                {/* Pending State Overlay */}
                 {isNextSemester && userData.promotionStatus === "pending" && (
                   <div className="absolute inset-0 bg-amber-50/80 rounded-2xl border-2 border-dashed border-amber-300 flex items-center justify-center z-10 pointer-events-none backdrop-blur-[1px]">
                     <span className="bg-white text-amber-600 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm border border-amber-100">
@@ -434,7 +446,7 @@ export default function DashboardOverview({
         </div>
       </div>
 
-      {/* 4. MODAL: SEMESTER FORM */}
+      {/* MODAL: SEMESTER FORM */}
       {activeSemester && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white w-full max-w-lg p-8 rounded-3xl shadow-2xl relative animate-scale-in max-h-[90vh] overflow-y-auto">
@@ -484,7 +496,6 @@ export default function DashboardOverview({
                   />
                 </div>
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">
                   Result Marksheet
@@ -496,7 +507,6 @@ export default function DashboardOverview({
                     onChange={(e) => setResultImage(e.target.files[0])}
                     accept="image/*"
                   />
-
                   {resultImage ? (
                     <div className="relative z-10">
                       <img
@@ -529,7 +539,6 @@ export default function DashboardOverview({
                   )}
                 </div>
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">
                   Remarks
@@ -550,6 +559,14 @@ export default function DashboardOverview({
           </div>
         </div>
       )}
+
+      {/* WARNING MODAL */}
+      <WarningModal
+        isOpen={warning.show}
+        onClose={() => setWarning({ ...warning, show: false })}
+        title={warning.title}
+        message={warning.msg}
+      />
     </div>
   );
 }

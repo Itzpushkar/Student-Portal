@@ -26,7 +26,7 @@ exports.handleUploadError = (err, req, res, next) => {
   next();
 };
 
-// --- HELPER: ENHANCED PDF EMAIL ---
+// --- HELPER: PAGE-PER-SEMESTER PDF ---
 const sendSemesterUpdateEmail = async (user) => {
   try {
     const doc = new PDFDocument({ margin: 50 });
@@ -35,7 +35,43 @@ const sendSemesterUpdateEmail = async (user) => {
 
     doc.pipe(writeStream);
 
-    // 1. CALCULATE STATS
+    // --- PAGE 1: PERSONAL DETAILS ---
+
+    // Header
+    doc
+      .fontSize(24)
+      .font("Helvetica-Bold")
+      .text("Student Academic Report", { align: "center" });
+    doc.moveDown(2);
+
+    // Profile Photo
+    if (
+      user.personalDetails?.profilePhoto &&
+      fs.existsSync(user.personalDetails.profilePhoto)
+    ) {
+      try {
+        // Centered Photo
+        const x = (doc.page.width - 150) / 2;
+        doc.image(user.personalDetails.profilePhoto, x, 120, {
+          width: 150,
+          height: 150,
+          fit: [150, 150],
+          align: "center",
+        });
+        doc.moveDown(10);
+      } catch (imgErr) {
+        console.error("Image Error", imgErr);
+        doc.moveDown(4);
+      }
+    } else {
+      doc.moveDown(8);
+    }
+
+    // Personal Info Table-ish layout
+    const startX = 100;
+    let currentY = doc.y + 20;
+
+    // Calculations
     const totalBacklogs = user.academicDetails.reduce(
       (sum, sem) => sum + (parseInt(sem.backlogs) || 0),
       0
@@ -48,91 +84,74 @@ const sendSemesterUpdateEmail = async (user) => {
       ? (totalGpa / user.academicDetails.length).toFixed(2)
       : "0.00";
 
-    // 2. HEADER (Profile Photo + Info)
-    doc
-      .fontSize(20)
-      .font("Helvetica-Bold")
-      .text("Student Academic Report", { align: "center" });
-    doc.moveDown(2);
+    const addField = (label, value) => {
+      doc.fontSize(14).font("Helvetica-Bold").text(label, startX, currentY);
+      doc.font("Helvetica").text(value, startX + 150, currentY);
+      currentY += 30;
+    };
 
-    // Embed Profile Photo if exists
-    if (
-      user.personalDetails?.profilePhoto &&
-      fs.existsSync(user.personalDetails.profilePhoto)
-    ) {
-      try {
-        doc.image(user.personalDetails.profilePhoto, 50, 100, {
-          width: 100,
-          height: 100,
-          fit: [100, 100],
-        });
-      } catch (imgErr) {
-        console.error("Profile image error", imgErr);
-      }
-    }
+    addField("Name:", user.personalDetails?.fullName);
+    addField("Enrollment No:", user.enrollmentNo);
+    addField("Email:", user.email);
+    addField("Branch:", user.personalDetails?.branch);
+    addField("Current Semester:", user.currentSemester);
+    currentY += 10; // Spacing
+    doc.font("Helvetica-Bold").fillColor("blue");
+    addField("Current CGPA:", cgpa);
+    doc.fillColor("red");
+    addField("Total Backlogs:", totalBacklogs);
+    doc.fillColor("black"); // Reset
 
-    // Student Details (Aligned to right of photo)
-    const startX = 170;
-    let currentY = 100;
+    // --- PAGE 2+: SEMESTER DETAILS ---
+    // Sort semesters to ensure order 1, 2, 3...
+    const sortedSemesters = user.academicDetails.sort(
+      (a, b) => a.semester - b.semester
+    );
 
-    doc.fontSize(12).font("Helvetica");
-    doc.text(`Name: ${user.personalDetails?.fullName}`, startX, currentY);
-    currentY += 20;
-    doc.text(`Enrollment No: ${user.enrollmentNo}`, startX, currentY);
-    currentY += 20;
-    doc.text(`Branch: ${user.personalDetails?.branch}`, startX, currentY);
-    currentY += 20;
-    doc.text(`Email: ${user.email}`, startX, currentY);
-    currentY += 20;
-    doc.text(`Current Semester: ${user.currentSemester}`, startX, currentY);
-    currentY += 20;
+    sortedSemesters.forEach((sem) => {
+      doc.addPage(); // Force new page for every semester
 
-    doc.font("Helvetica-Bold");
-    doc.text(`CGPA: ${cgpa}`, startX, currentY);
-    currentY += 20;
-    doc.text(`Total Backlogs: ${totalBacklogs}`, startX, currentY);
+      // Semester Header
+      doc
+        .fontSize(22)
+        .font("Helvetica-Bold")
+        .text(`Semester ${sem.semester} Details`, { align: "center" });
+      doc.moveDown(2);
 
-    doc.moveDown(4); // Space after header
-
-    // 3. ACADEMIC HISTORY
-    doc
-      .fontSize(16)
-      .font("Helvetica-Bold")
-      .text("Academic History", 50, doc.y, { underline: true });
-    doc.moveDown();
-
-    user.academicDetails
-      .sort((a, b) => a.semester - b.semester)
-      .forEach((sem) => {
-        // Prevent page break in middle of block
-        if (doc.y > 650) doc.addPage();
-
-        doc
-          .fontSize(14)
-          .font("Helvetica-Bold")
-          .text(`Semester ${sem.semester}`);
-        doc.fontSize(12).font("Helvetica").text(`GPA: ${sem.gpa}`);
-        doc.text(`Backlogs: ${sem.backlogs}`);
-        if (sem.remarks) doc.text(`Remarks: ${sem.remarks}`);
+      // Stats
+      doc.fontSize(16).font("Helvetica");
+      doc.text(`GPA Obtained:  ${sem.gpa}`);
+      doc.moveDown(0.5);
+      doc.text(`Backlogs:      ${sem.backlogs}`);
+      if (sem.remarks) {
         doc.moveDown(0.5);
+        doc.text(`Remarks:       ${sem.remarks}`);
+      }
 
-        // Embed Result Image
-        if (sem.marksheetImages && sem.marksheetImages.length > 0) {
-          const imgPath = sem.marksheetImages[0]; // Assuming 1 image per sem for now
-          if (fs.existsSync(imgPath)) {
-            try {
-              doc.text("Result Marksheet:", { underline: true });
-              doc.image(imgPath, { width: 400 }); // Large preview
-              doc.moveDown();
-            } catch (err) {
-              doc.text("[Image Error]");
-            }
-          } else {
-            doc.text("[Image Not Found on Server]");
+      doc.moveDown(2);
+
+      // Marksheet Image
+      if (sem.marksheetImages && sem.marksheetImages.length > 0) {
+        const imgPath = sem.marksheetImages[0];
+        if (fs.existsSync(imgPath)) {
+          try {
+            doc
+              .fontSize(14)
+              .font("Helvetica-Bold")
+              .text("Result Marksheet:", { underline: true });
+            doc.moveDown();
+            // Fit image to page width minus margins
+            doc.image(imgPath, { width: 500, align: "center" });
+          } catch (err) {
+            doc.text("[Image File Corrupt or Unsupported]");
           }
+        } else {
+          doc.text("[Marksheet Image Not Found on Server]");
         }
-        doc.moveDown(2); // Space between semesters
-      });
+      } else {
+        doc.text("[No Marksheet Uploaded]");
+      }
+    });
 
     doc.end();
 
@@ -152,7 +171,6 @@ const sendSemesterUpdateEmail = async (user) => {
         ],
       });
 
-      // Cleanup
       setTimeout(() => {
         if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
       }, 5000);
@@ -189,22 +207,28 @@ exports.getDashboard = async (req, res) => {
 exports.savePersonalDetails = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    user.personalDetails.fullName = req.body.fullName;
-    user.personalDetails.dob = req.body.dob;
-    user.personalDetails.contact = req.body.contact;
-    user.personalDetails.address = req.body.address;
-    user.personalDetails.course = req.body.course;
-    user.personalDetails.branch = req.body.branch;
-    user.personalDetails.tenthPercentage = req.body.tenthPercentage;
+
+    // Update Email if provided
+    if (req.body.email) user.email = req.body.email;
+
+    if (req.body.fullName) user.personalDetails.fullName = req.body.fullName;
+    if (req.body.dob) user.personalDetails.dob = req.body.dob;
+    if (req.body.contact) user.personalDetails.contact = req.body.contact;
+    if (req.body.address) user.personalDetails.address = req.body.address;
+    if (req.body.course) user.personalDetails.course = req.body.course;
+    if (req.body.branch) user.personalDetails.branch = req.body.branch;
+    if (req.body.tenthPercentage)
+      user.personalDetails.tenthPercentage = req.body.tenthPercentage;
 
     if (req.file) user.personalDetails.profilePhoto = req.file.path;
+
     user.isPersonalDetailsCompleted = true;
 
     await user.save();
     res.json({ msg: "Profile Updated", user });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Error updating profile" });
+    console.error("Save Profile Error:", err);
+    res.status(500).json({ msg: "Error updating profile: " + err.message });
   }
 };
 
@@ -236,7 +260,6 @@ exports.submitSemester = async (req, res) => {
     user.isAcademicDetailsCompleted = true;
     await user.save();
 
-    // Send the Enhanced PDF
     sendSemesterUpdateEmail(user);
 
     res.json({ msg: "Saved & Email Sent" });

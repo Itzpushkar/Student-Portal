@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import WarningModal from "../../common/WarningModal";
+import ChangePasswordModal from "../modals/ChangePasswordModal"; // Import Modal
+import { Lock } from "lucide-react";
 
 export default function PersonalDetailsForm({
   userData,
@@ -7,30 +10,37 @@ export default function PersonalDetailsForm({
 }) {
   const [formData, setFormData] = useState({
     fullName: "",
+    email: "",
     dob: "",
     contact: "",
     address: "",
     tenthPercentage: "",
-    course: "Diploma", // Forced
+    course: "Diploma",
     branch: "",
-    enrollmentNo: "", // Read-only
+    enrollmentNo: "",
   });
+  const [originalEmail, setOriginalEmail] = useState("");
   const [profilePhoto, setProfilePhoto] = useState(null);
+
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false); // Modal State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // --- POPULATE ---
   useEffect(() => {
     if (userData) {
+      const email = userData.email || "";
+      setOriginalEmail(email);
       setFormData({
         fullName: userData.personalDetails?.fullName || userData.username || "",
+        email: email,
         dob: userData.personalDetails?.dob || "",
         contact: userData.personalDetails?.contact || "",
         address: userData.personalDetails?.address || "",
         tenthPercentage: userData.personalDetails?.tenthPercentage || "",
-        course: "Diploma", // Enforce Diploma
+        course: "Diploma",
         branch: userData.personalDetails?.branch || "",
-        enrollmentNo: userData.enrollmentNo || "", // From User Root
+        enrollmentNo: userData.enrollmentNo || "",
       });
     }
   }, [userData]);
@@ -47,17 +57,27 @@ export default function PersonalDetailsForm({
 
   const handleFileChange = (e) => setProfilePhoto(e.target.files[0]);
 
-  const handleSubmit = async (e) => {
+  const handlePreSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-
     if (formData.contact.length !== 10) {
       setError("Contact number must be exactly 10 digits");
-      setLoading(false);
       return;
     }
+    if (formData.email !== originalEmail) {
+      setShowEmailConfirm(true);
+    } else {
+      submitData();
+    }
+  };
 
+  const handleRevertEmail = () => {
+    setFormData((prev) => ({ ...prev, email: originalEmail }));
+    setShowEmailConfirm(false);
+  };
+
+  const submitData = async () => {
+    setLoading(true);
+    setError("");
     try {
       const userId = userData?._id || userData?.user?._id;
       if (!userId) {
@@ -67,11 +87,9 @@ export default function PersonalDetailsForm({
 
       const data = new FormData();
       data.append("userId", userId);
-      // Append all except read-only if needed, but backend updates specific fields
       Object.keys(formData).forEach((key) => {
         if (key !== "enrollmentNo") data.append(key, formData[key]);
       });
-
       if (profilePhoto) data.append("profilePhoto", profilePhoto);
 
       const response = await fetch("http://localhost:5000/api/user/personal", {
@@ -81,6 +99,7 @@ export default function PersonalDetailsForm({
       });
 
       if (response.ok) {
+        setShowEmailConfirm(false);
         onComplete();
       } else {
         const errorData = await response.json();
@@ -94,14 +113,25 @@ export default function PersonalDetailsForm({
   };
 
   return (
-    <div className="bg-white">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">
-          Personal Details
-        </h2>
-        <p className="text-slate-500 text-sm">
-          Please keep your profile updated.
-        </p>
+    <div className="bg-white relative">
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            Personal Details
+          </h2>
+          <p className="text-slate-500 text-sm">
+            Please keep your profile updated.
+          </p>
+        </div>
+
+        {/* Change Password Trigger */}
+        <button
+          type="button"
+          onClick={() => setShowPasswordModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-200 transition-colors"
+        >
+          <Lock size={14} /> Change Password
+        </button>
       </div>
 
       {error && (
@@ -110,8 +140,7 @@ export default function PersonalDetailsForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* PHOTO */}
+      <form onSubmit={handlePreSubmit} className="space-y-6">
         <div className="flex flex-col items-center justify-center mb-6">
           <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center overflow-hidden mb-3 border-4 border-slate-50 shadow-sm relative group">
             {profilePhoto ? (
@@ -144,7 +173,6 @@ export default function PersonalDetailsForm({
           </label>
         </div>
 
-        {/* INPUTS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
@@ -154,10 +182,9 @@ export default function PersonalDetailsForm({
               type="text"
               value={formData.enrollmentNo}
               readOnly
-              className="input-field bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200 focus:border-slate-200 focus:shadow-none"
+              className="input-field bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200"
             />
           </div>
-
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
               Full Name
@@ -169,23 +196,21 @@ export default function PersonalDetailsForm({
               onChange={handleChange}
               required
               className="input-field"
-              placeholder="Enter full name"
             />
           </div>
-
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
-              Date of Birth
+              Registered Email
             </label>
             <input
-              type="date"
-              name="dob"
-              value={formData.dob}
+              type="email"
+              name="email"
+              value={formData.email}
               onChange={handleChange}
+              required
               className="input-field"
             />
           </div>
-
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
               Contact Number
@@ -198,10 +223,20 @@ export default function PersonalDetailsForm({
               required
               maxLength={10}
               className="input-field"
-              placeholder="10-digit number"
             />
           </div>
-
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+              Date of Birth
+            </label>
+            <input
+              type="date"
+              name="dob"
+              value={formData.dob}
+              onChange={handleChange}
+              className="input-field"
+            />
+          </div>
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
               10th Percentage
@@ -216,10 +251,8 @@ export default function PersonalDetailsForm({
               step="0.01"
               required
               className="input-field"
-              placeholder="e.g. 85.5"
             />
           </div>
-
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
               Course
@@ -233,7 +266,6 @@ export default function PersonalDetailsForm({
               <option value="Diploma">Diploma</option>
             </select>
           </div>
-
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
               Branch
@@ -256,7 +288,6 @@ export default function PersonalDetailsForm({
             </select>
           </div>
         </div>
-
         <div>
           <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
             Address
@@ -267,7 +298,6 @@ export default function PersonalDetailsForm({
             onChange={handleChange}
             rows="3"
             className="input-field resize-none"
-            placeholder="Enter full address"
           />
         </div>
 
@@ -291,10 +321,45 @@ export default function PersonalDetailsForm({
         </div>
       </form>
 
-      <style>{`
-        .input-field { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; background: #f8fafc; color: #334155; font-weight: 500; transition: all 0.2s; } 
-        .input-field:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-      `}</style>
+      {/* MODALS */}
+      {showEmailConfirm && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center border border-slate-100 relative">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-sm border border-amber-200">
+              ⚠️
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-3">
+              Change Registered Email?
+            </h3>
+            <p className="text-slate-500 text-sm leading-relaxed mb-8">
+              Are you sure you want to change your registered email id? If you
+              change your email id then you have to use that email id in future
+              for login and forgetting password.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRevertEmail}
+                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors"
+              >
+                No, Keep Old
+              </button>
+              <button
+                onClick={submitData}
+                className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg transition-colors"
+              >
+                Yes, Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ChangePasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+      />
+
+      <style>{`.input-field { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; background: #f8fafc; color: #334155; font-weight: 500; transition: all 0.2s; } .input-field:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); } .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }`}</style>
     </div>
   );
 }

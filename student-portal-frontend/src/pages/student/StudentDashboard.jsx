@@ -1624,6 +1624,120 @@
 //     </div>
 //   );
 // }
+
+// import { useState, useEffect } from "react";
+// import { useAuth } from "../../context/useAuth";
+// import { useNavigate } from "react-router-dom";
+
+// import PersonalDetailsForm from "../../components/student/forms/PersonalDetailsForm";
+// import AcademicDetailsForm from "../../components/student/forms/AcademicDetailsForm";
+// import Sidebar from "../../components/student/dashboard/Sidebar";
+// import DashboardOverview from "../../components/student/dashboard/DashboardOverview";
+
+// export default function StudentDashboard() {
+//   const { user, logoutUser } = useAuth();
+//   const navigate = useNavigate();
+
+//   const [currentView, setCurrentView] = useState("dashboard");
+//   const [userData, setUserData] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   // --- DATA FETCHING ---
+//   useEffect(() => {
+//     if (!user) {
+//       navigate("/");
+//       return;
+//     }
+//     fetchUserData();
+
+//     let interval;
+//     if (currentView === "dashboard") {
+//       interval = setInterval(() => fetchUserData(true), 10000);
+//     }
+//     return () => clearInterval(interval);
+//   }, [user, navigate, currentView]);
+
+//   const fetchUserData = async (isBackground = false) => {
+//     try {
+//       if (!isBackground) setLoading(true);
+//       const res = await fetch("http://localhost:5000/api/user/dashboard", {
+//         method: "GET",
+//         credentials: "include",
+//         headers: { "Content-Type": "application/json" },
+//       });
+//       if (res.ok) {
+//         const data = await res.json();
+//         setUserData(data);
+//       }
+//     } catch (err) {
+//       console.error(err);
+//     } finally {
+//       if (!isBackground) setLoading(false);
+//     }
+//   };
+
+//   const handleLogout = () => {
+//     logoutUser();
+//     navigate("/");
+//   };
+
+//   if (loading && !userData)
+//     return (
+//       <div className="h-screen flex items-center justify-center bg-slate-900 text-slate-400 font-sans">
+//         <div className="flex flex-col items-center gap-4">
+//           <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+//           <p>Loading Portal...</p>
+//         </div>
+//       </div>
+//     );
+
+//   return (
+//     <div className="min-h-screen bg-slate-100 flex font-sans text-slate-800">
+//       <Sidebar
+//         currentView={currentView}
+//         setCurrentView={setCurrentView}
+//         onLogout={handleLogout}
+//       />
+
+//       <main className="flex-1 ml-20 lg:ml-72 p-8 lg:p-12 transition-all">
+//         {currentView === "dashboard" && (
+//           <DashboardOverview
+//             user={user}
+//             userData={userData}
+//             fetchUserData={fetchUserData}
+//             setView={setCurrentView} // Pass setter to allow navigation from Banner
+//           />
+//         )}
+
+//         {currentView === "profile" && (
+//           <div className="bg-white p-8 lg:p-12 rounded-3xl shadow-lg border border-slate-100 max-w-4xl mx-auto animate-fade-in">
+//             <PersonalDetailsForm
+//               userData={{ ...userData, _id: user._id }}
+//               onComplete={() => {
+//                 setCurrentView("dashboard");
+//                 fetchUserData();
+//               }}
+//               onCancel={() => setCurrentView("dashboard")}
+//             />
+//           </div>
+//         )}
+
+//         {currentView === "academic" && (
+//           <div className="bg-white p-8 lg:p-12 rounded-3xl shadow-lg border border-slate-100 max-w-4xl mx-auto animate-fade-in">
+//             <AcademicDetailsForm
+//               userData={{ ...userData, _id: user._id }}
+//               onComplete={() => {
+//                 setCurrentView("dashboard");
+//                 fetchUserData();
+//               }}
+//             />
+//           </div>
+//         )}
+//       </main>
+//     </div>
+//   );
+// }
+
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -1632,6 +1746,8 @@ import PersonalDetailsForm from "../../components/student/forms/PersonalDetailsF
 import AcademicDetailsForm from "../../components/student/forms/AcademicDetailsForm";
 import Sidebar from "../../components/student/dashboard/Sidebar";
 import DashboardOverview from "../../components/student/dashboard/DashboardOverview";
+import Notifications from "../../components/student/dashboard/Notifications";
+import Broadcasts from "../../components/student/dashboard/Broadcasts";
 
 export default function StudentDashboard() {
   const { user, logoutUser } = useAuth();
@@ -1704,7 +1820,7 @@ export default function StudentDashboard() {
             user={user}
             userData={userData}
             fetchUserData={fetchUserData}
-            setView={setCurrentView} // Pass setter to allow navigation from Banner
+            setView={setCurrentView}
           />
         )}
 
@@ -1732,6 +1848,9 @@ export default function StudentDashboard() {
             />
           </div>
         )}
+
+        {currentView === "notifications" && <Notifications />}
+        {currentView === "broadcasts" && <Broadcasts />}
       </main>
     </div>
   );

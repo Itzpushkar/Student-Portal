@@ -103,6 +103,7 @@ export default function LandingPage() {
             : "opacity-100"
         }`}
       >
+        {/* Background Doodle */}
         <div className="absolute top-0 right-0 w-1/2 h-full flex items-center justify-center opacity-10">
           <svg
             viewBox="0 0 200 200"
@@ -176,6 +177,7 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* Login Panel */}
       <div
         className={`absolute top-0 right-0 h-full w-full md:w-[500px] bg-white shadow-2xl z-30 transition-transform duration-500 ease-out p-12 ${
           viewState === "login-slide" ? "translate-x-0" : "translate-x-full"
@@ -187,6 +189,7 @@ export default function LandingPage() {
         />
       </div>
 
+      {/* Signup Panel */}
       <div
         className={`absolute bottom-0 right-0 md:right-10 w-full md:w-[450px] bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-3xl z-30 transition-transform duration-500 ease-out p-8 ${
           viewState === "signup-slide" ? "translate-y-0" : "translate-y-full"
@@ -198,6 +201,7 @@ export default function LandingPage() {
         />
       </div>
 
+      {/* Admin Hub */}
       {viewState === "admin-hub" && (
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto">
           <div className="bg-white p-10 rounded-[2rem] shadow-2xl text-center max-w-md w-full animate-fade-in border border-slate-100 relative">

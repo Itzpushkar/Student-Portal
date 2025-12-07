@@ -1,4 +1,11 @@
-import { LayoutDashboard, User, BookOpen, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  User,
+  BookOpen,
+  LogOut,
+  Bell,
+  Radio,
+} from "lucide-react";
 
 export default function Sidebar({ currentView, setCurrentView, onLogout }) {
   return (
@@ -30,6 +37,18 @@ export default function Sidebar({ currentView, setCurrentView, onLogout }) {
           label="Academics"
           active={currentView === "academic"}
           onClick={() => setCurrentView("academic")}
+        />
+        <SidebarItem
+          icon={<Bell size={20} />}
+          label="Notifications"
+          active={currentView === "notifications"}
+          onClick={() => setCurrentView("notifications")}
+        />
+        <SidebarItem
+          icon={<Radio size={20} />}
+          label="Broadcasts"
+          active={currentView === "broadcasts"}
+          onClick={() => setCurrentView("broadcasts")}
         />
       </nav>
 

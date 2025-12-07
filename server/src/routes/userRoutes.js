@@ -1,26 +1,23 @@
 const express = require("express");
 const router = express.Router();
-// FIX: Path relative to src/routes
 const { protect, adminAccess } = require("../middleware/authMiddleware");
 
 // Import Controllers
 const authController = require("../controllers/authController");
 const userController = require("../controllers/userController");
 
-// ==============================
-// 🔓 PUBLIC ROUTES (Student Auth)
-// ==============================
+// PUBLIC ROUTES
 router.post("/signup", authController.signup);
 router.post("/login", authController.login);
 router.post("/verify-otp", authController.verifyOTP);
 router.post("/logout", authController.logout);
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/verify-reset-otp", authController.verifyResetOTP);
+router.post("/reset-password", authController.resetPassword);
 
-// ==============================
-// 🔒 PROTECTED ROUTES
-// ==============================
+// PROTECTED ROUTES
 router.use(protect);
 
-// --- DASHBOARD & PROFILE ---
 router.get("/dashboard", userController.getDashboard);
 router.post(
   "/personal",
@@ -28,8 +25,6 @@ router.post(
   userController.handleUploadError,
   userController.savePersonalDetails
 );
-
-// --- ACADEMIC ---
 router.post(
   "/academic",
   userController.uploadMarksheets,
@@ -38,7 +33,10 @@ router.post(
 );
 router.post("/request-promotion", userController.requestPromotion);
 
-// --- ADMIN ACTIONS (Student-Specific) ---
+// NEW: Change Password Route
+router.post("/change-password", authController.changePassword);
+
+// ADMIN ACTIONS
 router.post(
   "/admin/approve-promotion",
   adminAccess,
